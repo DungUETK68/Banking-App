@@ -1,0 +1,34 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build & Testing
+dist/
+coverage/
+build/
+
+# Environment variables (Bảo mật - Rất quan trọng)
+.env
+.env.test
+.env.production
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Docker
+docker-compose.override.yml
+
+# MD files
+10_DAYS_PLAN.md
+REQUIREMENT.md
