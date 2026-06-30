@@ -8,6 +8,8 @@ import { Account } from './entities/account.entity';
 import { Transaction } from './entities/transaction.entity';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { AccountsModule } from './accounts/accounts.module';
+import { AccountsService } from './accounts/accounts.service';
 
 @Module({
   imports: [
@@ -35,8 +37,10 @@ import { AuthModule } from './auth/auth.module';
     UsersModule,
 
     AuthModule,
+
+    AccountsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AccountsService],
 })
 export class AppModule { }
