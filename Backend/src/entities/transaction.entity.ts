@@ -20,6 +20,9 @@ export class Transaction {
     @Column({ type: 'numeric', precision: 18, scale: 2 })
     amount: number;
 
+    @Column({ name: 'idempotency_key', unique: true, nullable: true })
+    idempotencyKey: string;
+
     @Column({ type: 'enum', enum: TransactionType, default: TransactionType.TRANSFER })
     type: TransactionType;
 

@@ -9,10 +9,15 @@ export class TransactionsService {
     constructor(private dataSource: DataSource) { }
 
     async transfer(userId: string, transferDto: TransferDto) {
-        const { fromAccountNumber, toAccountNumber, amount, description } = transferDto;
+        const { fromAccountNumber, toAccountNumber, amount, description, idempotencyKey } = transferDto;
 
         if (fromAccountNumber === toAccountNumber) {
             throw new BadRequestException('Bạn không thể tự chuyển tiền cho chính mình.');
+        }
+
+        const existingTx = await this.dataSource.manager.findOne(Transaction, { where: { idempotencyKey } });
+        if (existingTx) {
+            throw new BadRequestException('Giao dịch này đã được xử lý.');
         }
 
         const queryRunner = this.dataSource.createQueryRunner();
@@ -57,6 +62,7 @@ export class TransactionsService {
             const transaction = new Transaction();
 
             transaction.amount = amount;
+            transaction.idempotencyKey = idempotencyKey;
             transaction.type = TransactionType.TRANSFER;
             transaction.status = TransactionStatus.SUCCESS;
             transaction.description = description || 'Chuyển khoản';

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, Min } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, IsUUID } from "class-validator";
 
 export class TransferDto {
     @IsNotEmpty({ message: 'Vui lòng nhập số tài khoản nguồn' })
@@ -15,4 +15,8 @@ export class TransferDto {
     @IsOptional()
     @IsString()
     description?: string;
+
+    @IsNotEmpty({ message: 'Thiếu mã Idempotency Key để chống lặp giao dịch.' })
+    @IsUUID('all', { message: 'Idempotency Key phải là định dạng UUID hợp lệ.' })
+    idempotencyKey: string;
 }
