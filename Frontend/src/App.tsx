@@ -12,6 +12,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  if (accessToken && accessToken !== 'undefined') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const Dashboard = () => <div>Trang Chủ</div>;
 
 function App() {
@@ -19,8 +28,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Các trang công khai */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
         {/* Các trang phải đăng nhập mới vào được */}
         <Route
