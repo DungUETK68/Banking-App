@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
 
         if (!user || user.status === 'locked') {
-            throw new UnauthorizedException('Token is invalid or user is locked');
+            throw new UnauthorizedException('Token hết hạn hoặc tài khoản đang bị khóa.');
         }
 
         // gan vao req.user

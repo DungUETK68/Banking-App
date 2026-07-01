@@ -27,41 +27,39 @@ export class AuthService {
         try {
             const existingUser = await queryRunner.manager.findOne(User, { where: { email } });
             if (existingUser) {
-                throw new ConflictException('Email already exists');
+                throw new ConflictException('Email này đã tồn tại.');
             }
 
             const salt = await bcrypt.genSalt();
             const passwordHash = await bcrypt.hash(password, salt);
 
-            // tao user
             const user = new User();
             user.email = email;
             user.fullName = fullName;
             user.passwordHash = passwordHash;
             const savedUser = await queryRunner.manager.save(user);
 
-            // tao account cho user
             const account = new Account();
             account.user = savedUser;
             account.accountNumber = Math.random().toString().slice(2, 12);
             await queryRunner.manager.save(account);
 
-            await queryRunner.commitTransaction(); // luu vao db
+            await queryRunner.commitTransaction();
 
             return {
-                message: 'User registered successfully',
+                message: 'Đăng ký tài khoản thành công.',
                 userId: savedUser.id,
             }
         } catch (error) {
-            await queryRunner.rollbackTransaction(); // rollback xoa het thao tac
+            await queryRunner.rollbackTransaction();
 
             if (error instanceof ConflictException) {
                 throw error;
             }
 
-            throw new InternalServerErrorException('Registration failed. Please try again.');
+            throw new InternalServerErrorException('Đăng ký thất bại, vui lòng thử lại.');
         } finally {
-            await queryRunner.release(); // dong ket noi transaction
+            await queryRunner.release();
         }
     }
 
@@ -71,30 +69,31 @@ export class AuthService {
         try {
             const user = await this.dataSource.manager.findOne(User, { where: { email } });
             if (!user) {
-                throw new UnauthorizedException('Invalid email or password');
+                throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
             }
 
             const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
             if (!isPasswordMatch) {
-                throw new UnauthorizedException('Invalid email or password');
+                throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
             }
 
             if (user.status === 'locked') {
-                throw new UnauthorizedException('Your account has been locked by an administrator');
+                throw new UnauthorizedException('Tài khoản của bạn đã bị khóa.');
             }
 
-            const payload = { sub: user.id, email: user.email, role: user.role };
             const tokens = await this.generateTokens(user);
 
             return {
-                message: 'Login successful',
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-                user: {
-                    id: user.id,
-                    fullName: user.fullName,
-                    email: user.email,
-                    role: user.role
+                message: 'Đăng nhập thành công.',
+                data: {
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken,
+                    user: {
+                        id: user.id,
+                        fullName: user.fullName,
+                        email: user.email,
+                        role: user.role
+                    }
                 }
             };
         } catch (error) {
@@ -102,7 +101,7 @@ export class AuthService {
                 throw error;
             }
 
-            throw new InternalServerErrorException('System error during login. Please try again later..');
+            throw new InternalServerErrorException('Lỗi trong quá trình đăng nhập, vui lòng thử lại.');
         }
     }
 
