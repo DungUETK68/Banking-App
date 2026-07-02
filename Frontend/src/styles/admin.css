@@ -1,0 +1,106 @@
+.admin-container {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: var(--text-main);
+}
+
+.table-wrapper {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 16px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 2px solid var(--input-border);
+}
+
+.admin-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--input-border);
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: rgba(79, 70, 229, 0.02);
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-locked {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.role-badge {
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--primary-color);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-lock {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.btn-lock:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-unlock {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.btn-unlock:hover {
+    background: #10b981;
+    color: white;
+}
