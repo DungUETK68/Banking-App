@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Send, History, LogOut, Wallet } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
-import '../layout.css';
+import '../styles/layout.css';
 
 const MainLayout = () => {
     const { user, logout } = useAuthStore();

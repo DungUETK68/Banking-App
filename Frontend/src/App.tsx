@@ -4,6 +4,7 @@ import { useAuthStore } from './stores/authStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MainLayout from './layouts/MainLayout';
+import Dashboard from './pages/Dashboard';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -21,8 +22,6 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
   return <>{children}</>;
 };
-
-const Dashboard = () => <div>Trang Chủ</div>;
 
 function App() {
   return (
