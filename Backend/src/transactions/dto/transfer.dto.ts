@@ -1,15 +1,16 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, IsUUID } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, Max, IsUUID } from "class-validator";
 
 export class TransferDto {
-    @IsNotEmpty({ message: 'Vui lòng nhập số tài khoản nguồn' })
+    @IsNotEmpty({ message: 'Vui lòng nhập số tài khoản nguồn.' })
     @IsString()
     fromAccountNumber: string;
 
-    @IsNotEmpty({ message: 'Vui lòng nhập số tài khoản người nhận' })
+    @IsNotEmpty({ message: 'Vui lòng nhập số tài khoản người nhận.' })
     toAccountNumber: string;
 
-    @IsNumber({}, { message: 'Số tiền phải là một con số' })
-    @Min(1, { message: 'Số tiền chuyển tối thiểu là 1 VND' })
+    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Số tiền phải là một con số hợp lệ.' })
+    @Min(1, { message: 'Số tiền chuyển tối thiểu là 1 VND.' })
+    @Max(10000000000, { message: 'Số tiền vượt quá hạn mức giao dịch cho phép.' })
     amount: number;
 
     @IsOptional()
