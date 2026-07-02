@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import MainLayout from './layouts/MainLayout';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -32,14 +33,9 @@ function App() {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
         {/* Các trang phải đăng nhập mới vào được */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route path="/" element={<Dashboard />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

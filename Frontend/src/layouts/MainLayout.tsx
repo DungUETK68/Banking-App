@@ -1,0 +1,56 @@
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Send, History, LogOut, Wallet } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
+import '../layout.css';
+
+const MainLayout = () => {
+    const { user, logout } = useAuthStore();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    return (
+        <div className="main-layout">
+            <aside className="sidebar">
+                <div className="brand">
+                    <Wallet size={32} color="var(--primary-color)" />
+                    <span>TD Bank</span>
+                </div>
+                <nav className="nav-links">
+                    <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <LayoutDashboard size={20} />
+                        Thông tin tài khoản
+                    </NavLink>
+                    <NavLink to="/transfer" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Send size={20} />
+                        Chuyển tiền
+                    </NavLink>
+                    <NavLink to="/history" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <History size={20} />
+                        Lịch sử giao dịch
+                    </NavLink>
+                </nav>
+                <div className="logout-btn" onClick={handleLogout}>
+                    <LogOut size={20} />
+                    <span>Đăng xuất</span>
+                </div>
+            </aside>
+            <div className="content-wrapper">
+                <header className="top-header">
+                    <div className="user-profile">
+                        <div className="avatar">{user?.fullName?.charAt(0).toUpperCase() || 'U'}</div>
+                        <span>{user?.fullName || 'Khách hàng'}</span>
+                    </div>
+                </header>
+                <main className="main-content">
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
+}
+
+export default MainLayout;
