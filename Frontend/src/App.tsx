@@ -7,6 +7,7 @@ import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import Transfer from './pages/Transfer';
+import History from './pages/History';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -38,6 +39,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/transfer" element={<Transfer />} />
+          <Route path='/history' element={<History />} />
         </Route>
       </Routes>
     </BrowserRouter>
