@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
+import Transfer from './pages/Transfer';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -36,6 +37,7 @@ function App() {
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/transfer" element={<Transfer />} />
         </Route>
       </Routes>
     </BrowserRouter>

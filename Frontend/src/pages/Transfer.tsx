@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
+import { Send, CheckCircle2 } from 'lucide-react';
+import '../styles/transfer.css';
+
+const Transfer = () => {
+    const [account, setAccount] = useState<any>(null);
+    const [formData, setFormData] = useState({
+        fromAccountNumber: '',
+        toAccountNumber: '',
+        amount: '',
+        description: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // tai danh sach account
+    useEffect(() => {
+        const fetchMyAccount = async () => {
+            try {
+                const response: any = await axiosClient.get('/accounts/me');
+
+                if (response.data && response.data.account) {
+                    setAccount(response.data.account);
+                    setFormData(prev => ({ ...prev, fromAccountNumber: response.data.account.accountNumber }));
+                }
+            } catch (error) {
+                console.error("Lỗi lấy thông tin tài khoản", error);
+            }
+        };
+
+        fetchMyAccount();
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSuccessMessage('');
+        setErrorMessage('');
+
+        const amount = Number(formData.amount);
+        if (amount <= 0) {
+            setErrorMessage('Số tiền phải lớn hơn 0.');
+            return;
+        }
+
+        if (formData.fromAccountNumber === formData.toAccountNumber) {
+            setErrorMessage('Không thể chuyển tiền cho chính tài khoản của bạn.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const idempotencyKey = crypto.randomUUID();
+
+            await axiosClient.post('/transactions/transfer', {
+                fromAccountNumber: formData.fromAccountNumber,
+                toAccountNumber: formData.toAccountNumber,
+                amount: amount,
+                description: formData.description,
+                idempotencyKey: idempotencyKey
+            });
+
+            setSuccessMessage('Giao dịch thành công!');
+            // xoa form
+            setFormData(prev => ({ ...prev, toAccountNumber: '', amount: '', description: '' }));
+
+            // tai lai so du
+            const accountResponse: any = await axiosClient.get('/accounts/me');
+            if (accountResponse.data && accountResponse.data.account) {
+                setAccount(accountResponse.data.account);
+            }
+        } catch (error) {
+            setErrorMessage(error.response?.data?.message || 'Giao dịch thất bại, vui lòng thử lại.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatMoney = (val: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    };
+
+    return (
+        <div className="transfer-container">
+            <div className="transfer-card">
+                <div className="transfer-header">
+                    <Send size={28} />
+                    <h2>Chuyển tiền</h2>
+                </div>
+                {successMessage && (
+                    <div className="success-message">
+                        <CheckCircle2 size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }} />
+                        {successMessage}
+                    </div>
+                )}
+
+                {errorMessage && <div className="error-message">{errorMessage}</div>}
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Tài khoản nguồn</label>
+                        <select
+                            name="fromAccountNumber"
+                            className="form-control"
+                            value={formData.fromAccountNumber}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="" disabled>-- Chọn tài khoản --</option>
+                            {account && (
+                                <option value={account.accountNumber}>
+                                    {account.accountNumber}
+                                </option>
+                            )}
+                        </select>
+                        {account && (
+                            <div className="balance-hint">
+                                <span>Số dư khả dụng:</span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                    {formatMoney(account.balance)}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="form-group">
+                        <label>Số tài khoản người nhận</label>
+                        <input
+                            type="text"
+                            name="toAccountNumber"
+                            className="form-control"
+                            placeholder="Nhập số tài khoản đích..."
+                            value={formData.toAccountNumber}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Số tiền chuyển (VND)</label>
+                        <input
+                            type="number"
+                            name="amount"
+                            className="form-control"
+                            placeholder="Ví dụ: 50000"
+                            value={formData.amount}
+                            onChange={handleChange}
+                            min="1"
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Nội dung chuyển khoản (Tùy chọn)</label>
+                        <input
+                            type="text"
+                            name="description"
+                            className="form-control"
+                            placeholder="Ví dụ: Tra tien cafe"
+                            value={formData.description}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <button type="submit" className="submit-btn" disabled={loading || !account}>
+                        {loading ? 'Đang xử lý giao dịch...' : (
+                            <><Send size={18} /> Chuyển khoản ngay</>
+                        )}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+export default Transfer;
