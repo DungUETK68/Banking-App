@@ -15,6 +15,7 @@ const Transfer = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [receiverName, setReceiverName] = useState('');
+    const [showModal, setShowModal] = useState(false);
 
     // tai danh sach account
     useEffect(() => {
@@ -86,9 +87,16 @@ const Transfer = () => {
             return;
         }
 
+        setShowModal(true);
+    };
+
+    const confirmTransfer = async () => {
+        setShowModal(false);
         setLoading(true);
+
         try {
             const idempotencyKey = crypto.randomUUID();
+            const amount = Number(formData.amount);
 
             await axiosClient.post('/transactions/transfer', {
                 fromAccountNumber: formData.fromAccountNumber,
@@ -112,7 +120,7 @@ const Transfer = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     const formatMoney = (val: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -206,6 +214,28 @@ const Transfer = () => {
                         )}
                     </button>
                 </form>
+
+                {showModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h3 style={{ marginTop: 0 }}>Xác nhận chuyển khoản</h3>
+                            <p>
+                                Bạn sắp chuyển số tiền <strong style={{ color: '#10b981', fontSize: '18px' }}>{formatDisplayAmount(formData.amount)} VND</strong>
+                            </p>
+                            <p>
+                                Tới người nhận: <strong>{receiverName || formData.toAccountNumber}</strong>
+                            </p>
+                            <div className="modal-actions">
+                                <button className="modal-btn cancel" onClick={() => setShowModal(false)}>
+                                    Hủy bỏ
+                                </button>
+                                <button className="modal-btn confirm" onClick={confirmTransfer}>
+                                    Xác nhận chuyển
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
