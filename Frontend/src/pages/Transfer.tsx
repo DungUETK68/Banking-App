@@ -37,6 +37,18 @@ const Transfer = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // xoa ky tu khong phai so
+        const rawValue = e.target.value.replace(/\D/g, '');
+        setFormData({ ...formData, amount: rawValue });
+    };
+
+    const formatDisplayAmount = (val: string) => {
+        if (!val) return '';
+        // ngat hang nghin
+        return new Intl.NumberFormat('en-US').format(Number(val));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSuccessMessage('');
@@ -141,12 +153,12 @@ const Transfer = () => {
                     <div className="form-group">
                         <label>Số tiền chuyển (VND)</label>
                         <input
-                            type="number"
+                            type="text"
                             name="amount"
                             className="form-control"
                             placeholder="Ví dụ: 50000"
-                            value={formData.amount}
-                            onChange={handleChange}
+                            value={formatDisplayAmount(formData.amount)}
+                            onChange={handleAmountChange}
                             min="1"
                             required
                         />
