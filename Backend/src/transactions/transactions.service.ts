@@ -30,7 +30,7 @@ export class TransactionsService {
                     accountNumber: fromAccountNumber,
                     user: { id: userId }
                 },
-                lock: { mode: 'pessimistic_write' } // typeorm khoa khong cho request khac truy cap
+                lock: { mode: 'pessimistic_write' }
             });
 
             if (!fromAccount) {
@@ -93,7 +93,9 @@ export class TransactionsService {
         }
     }
 
-    async getTransactions(userId: string, accountNumber: string, page: number = 1, limit: number = 10) {
+    async getTransactions(userId: string, accountNumber: string, page: number = 1, limit: number = 10,
+        filters?: { type?: string; minAmount?: number; maxAmount?: number; startDate?: string; endDate?: string }
+    ) {
         const account = await this.dataSource.manager.findOne(Account, {
             where: {
                 accountNumber: accountNumber,
@@ -105,16 +107,40 @@ export class TransactionsService {
             throw new NotFoundException('Tài khoản không tồn tại hoặc không thuộc quyền sở hữu của bạn.');
         }
 
-        const [transactions, total] = await this.dataSource.manager.findAndCount(Transaction, {
-            where: [
-                { fromAccount: { id: account.id } },
-                { toAccount: { id: account.id } }
-            ],
-            relations: { fromAccount: true, toAccount: true }, // join de lay account number
-            order: { createdAt: 'DESC' },
-            skip: (page - 1) * limit, // so ban ghi bo qua
-            take: limit
-        });
+        const queryBuilder = this.dataSource.manager.createQueryBuilder(Transaction, 'tx')
+            .leftJoinAndSelect('tx.fromAccount', 'fromAccount')
+            .leftJoinAndSelect('tx.toAccount', 'toAccount');
+
+        // loai giao dich
+        if (filters?.type === 'INCOME') {
+            queryBuilder.andWhere('toAccount.id = :accountId', { accountId: account.id });
+        } else if (filters?.type === 'EXPENSE') {
+            queryBuilder.andWhere('fromAccount.id = :accountId', { accountId: account.id });
+        } else {
+            queryBuilder.andWhere('(fromAccount.id = :accountId OR toAccount.id = :accountId)', { accountId: account.id });
+        }
+
+        // khoang tien
+        if (filters?.minAmount) {
+            queryBuilder.andWhere('tx.amount >= :minAmount', { minAmount: filters.minAmount });
+        }
+        if (filters?.maxAmount) {
+            queryBuilder.andWhere('tx.amount <= :maxAmount', { maxAmount: filters.maxAmount });
+        }
+
+        // khoang ngay
+        if (filters?.startDate) {
+            queryBuilder.andWhere('tx.createdAt >= :startDate', { startDate: new Date(filters.startDate) });
+        }
+        if (filters?.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            queryBuilder.andWhere('tx.createdAt <= :endDate', { endDate: end });
+        }
+
+        queryBuilder.orderBy('tx.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+
+        const [transactions, total] = await queryBuilder.getManyAndCount();
 
         const formattedData = transactions.map(tx => {
             const isMoneyOut = tx.fromAccount?.id === account.id;

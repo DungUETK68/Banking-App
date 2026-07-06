@@ -20,7 +20,12 @@ export class TransactionsController {
         @Req() req: any,
         @Query('accountNumber') accountNumber: string,
         @Query('page') page: number,
-        @Query('limit') limit: number
+        @Query('limit') limit: number,
+        @Query('type') type?: string,
+        @Query('minAmount') minAmount?: number,
+        @Query('maxAmount') maxAmount?: number,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string
     ) {
         if (!accountNumber) {
             throw new BadRequestException('Vui lòng nhập accountNumber.');
@@ -30,6 +35,8 @@ export class TransactionsController {
         const pageNum = page || 1;
         const limitNum = limit || 10;
 
-        return this.transactionsService.getTransactions(userId, accountNumber, pageNum, limitNum);
+        return this.transactionsService.getTransactions(userId, accountNumber, pageNum, limitNum, {
+            type, minAmount, maxAmount, startDate, endDate
+        });
     }
 }

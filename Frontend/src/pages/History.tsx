@@ -9,6 +9,13 @@ const History = () => {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [accountNumber, setAccountNumber] = useState<string>('');
+    const [filters, setFilters] = useState({
+        type: '',
+        minAmount: '',
+        maxAmount: '',
+        startDate: '',
+        endDate: ''
+    });
 
     useEffect(() => {
         const fetchAccount = async () => {
@@ -32,7 +39,15 @@ const History = () => {
 
         setLoading(true);
         try {
-            const response: any = await axiosClient.get(`/transactions?accountNumber=${accountNumber}&page=${currentPage}&limit=10`);
+            let url = `/transactions?accountNumber=${accountNumber}&page=${currentPage}&limit=10`;
+
+            if (filters.type) url += `&type=${filters.type}`;
+            if (filters.minAmount) url += `&minAmount=${filters.minAmount}`;
+            if (filters.maxAmount) url += `&maxAmount=${filters.maxAmount}`;
+            if (filters.startDate) url += `&startDate=${filters.startDate}`;
+            if (filters.endDate) url += `&endDate=${filters.endDate}`;
+
+            const response: any = await axiosClient.get(url);
             setTransactions(response.data);
             setMeta({
                 page: response.currentPage,
@@ -45,11 +60,24 @@ const History = () => {
         }
     };
 
+    const handleApplyFilter = () => {
+        if (page === 1) {
+            fetchHistory(1, accountNumber);
+        } else {
+            setPage(1);
+        }
+    };
+
     useEffect(() => {
         if (accountNumber) {
             fetchHistory(page, accountNumber);
         }
     }, [page, accountNumber]);
+
+    const formatInputMoney = (val: string) => {
+        if (!val) return '';
+        return new Intl.NumberFormat('vi-VN').format(Number(val));
+    };
 
     const formatMoney = (val: number, type: string) => {
         const formatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -64,10 +92,49 @@ const History = () => {
         });
     };
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'minAmount' | 'maxAmount') => {
+        const rawValue = e.target.value.replace(/\D/g, '');
+        setFilters({ ...filters, [field]: rawValue });
+    };
+
     return (
         <div className="history-container">
             <div className="history-header">
                 <h1>Lịch sử giao dịch</h1>
+            </div>
+            <div className="filter-toolbar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <select
+                    value={filters.type}
+                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                >
+                    <option value="">Tất cả loại Giao dịch</option>
+                    <option value="INCOME">Tiền vào</option>
+                    <option value="EXPENSE">Tiền ra</option>
+                </select>
+                <input
+                    type="text" placeholder="Từ số tiền (VNĐ)" value={formatInputMoney(filters.minAmount)}
+                    onChange={(e) => handleAmountChange(e, 'minAmount')}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <input
+                    type="text" placeholder="Đến số tiền (VNĐ)" value={formatInputMoney(filters.maxAmount)}
+                    onChange={(e) => handleAmountChange(e, 'maxAmount')}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <input
+                    type="date" value={filters.startDate} title="Từ ngày"
+                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <input
+                    type="date" value={filters.endDate} title="Đến ngày"
+                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <button onClick={handleApplyFilter} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                    Lọc Dữ Liệu
+                </button>
             </div>
             <div className="history-table-wrapper">
                 {loading ? (
