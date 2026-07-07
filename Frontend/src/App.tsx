@@ -26,6 +26,16 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -37,7 +47,7 @@ function App() {
         {/* Các trang phải đăng nhập mới vào được */}
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="/transfer" element={<Transfer />} />
           <Route path='/history' element={<History />} />
         </Route>
