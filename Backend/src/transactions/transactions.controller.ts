@@ -32,8 +32,8 @@ export class TransactionsController {
         }
 
         const userId = req.user.id;
-        const pageNum = page || 1;
-        const limitNum = limit || 10;
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 10;
 
         return this.transactionsService.getTransactions(userId, accountNumber, pageNum, limitNum, {
             type, minAmount, maxAmount, startDate, endDate

@@ -158,11 +158,13 @@ export class TransactionsService {
         });
 
         return {
-            data: formattedData,
-            total,
-            currentPage: Number(page),
-            totalPages: Math.ceil(total / limit),
-            limit: Number(limit)
+            items: formattedData,
+            meta: {
+                total,
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / limit),
+                limit: Number(limit)
+            }
         };
     }
 }

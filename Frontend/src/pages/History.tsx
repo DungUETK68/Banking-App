@@ -48,10 +48,10 @@ const History = () => {
             if (filters.endDate) url += `&endDate=${filters.endDate}`;
 
             const response: any = await axiosClient.get(url);
-            setTransactions(response.data);
+            setTransactions(response.data.items);
             setMeta({
-                page: response.currentPage,
-                lastPage: response.totalPages
+                page: response.data.meta.currentPage,
+                lastPage: response.data.meta.totalPages
             });
         } catch (error) {
             console.error("Lỗi khi tải lịch sử:", error);
