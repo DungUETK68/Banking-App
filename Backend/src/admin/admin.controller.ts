@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, UseGuards, BadRequestException, Query } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -10,8 +10,16 @@ export class AdminController {
     constructor(private readonly adminService: AdminService) { }
 
     @Get('users')
-    getAllUsers() {
-        return this.adminService.getAllUsers();
+    getAllUsers(
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '10',
+        @Query('name') name?: string,
+        @Query('email') email?: string,
+        @Query('role') role?: string,
+        @Query('status') status?: string,
+    ) {
+        return this.adminService.getAllUsers(Number(page), Number(limit),
+            { name, email, role, status });
     }
 
     @Patch('users/:id/status')

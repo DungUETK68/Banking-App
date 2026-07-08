@@ -8,11 +8,22 @@ const Admin = () => {
     const [loading, setLoading] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState<any>(null);
+    const [filters, setFilters] = useState({ name: '', email: '', role: '', status: '' })
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (currentPage: number) => {
+        setLoading(true);
         try {
-            const response: any = await axiosClient.get('/admin/users');
-            setUsers(response.data);
+            let url = `/admin/users?page=${currentPage}&limit=10`;
+            if (filters.name) url += `&name=${filters.name}`;
+            if (filters.email) url += `&email=${filters.email}`;
+            if (filters.role) url += `&role=${filters.role}`;
+            if (filters.status) url += `&status=${filters.status}`;
+
+            const response: any = await axiosClient.get(url);
+            setUsers(response.data.items);
+            setMeta(response.data.meta);
         } catch (error) {
             console.error("Lỗi khi tải danh sách:", error);
         } finally {
@@ -21,8 +32,8 @@ const Admin = () => {
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        fetchUsers(page);
+    }, [page]);
 
     const handleOpenModal = (user: any) => {
         setSelectedUser(user);
@@ -36,7 +47,7 @@ const Admin = () => {
         try {
             await axiosClient.patch(`/admin/users/${selectedUser.id}/status`, { status: newStatus });
             setShowConfirmModal(false);
-            fetchUsers();
+            fetchUsers(1);
         } catch (error) {
             alert('Có lỗi xảy ra!');
         }
@@ -49,6 +60,34 @@ const Admin = () => {
     return (
         <div className="admin-container">
             <h1 className="page-title">Quản trị hệ thống</h1>
+            <div className="filter-toolbar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <input
+                    type="text" placeholder="Tìm tên..." value={filters.name}
+                    onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <input
+                    type="text" placeholder="Tìm email..." value={filters.email}
+                    onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+                <select value={filters.role} onChange={(e) => setFilters({ ...filters, role: e.target.value })} style={{ padding: '8px', borderRadius: '8px' }}>
+                    <option value="">Tất cả Vai trò</option>
+                    <option value="customer">Khách hàng</option>
+                    <option value="admin">Quản trị viên</option>
+                </select>
+                <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={{ padding: '8px', borderRadius: '8px' }}>
+                    <option value="">Tất cả Trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="locked">Đã khóa</option>
+                </select>
+                <button
+                    onClick={() => { setPage(1); fetchUsers(1); }}
+                    style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                    Áp dụng
+                </button>
+            </div>
             <div className="table-wrapper">
                 <table className="admin-table">
                     <thead>
@@ -94,6 +133,14 @@ const Admin = () => {
                         ))}
                     </tbody>
                 </table>
+
+                {meta && meta.totalPages > 1 && (
+                    <div className="pagination">
+                        <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</button>
+                        <span className="page-info">Trang {meta.currentPage} / {meta.totalPages}</span>
+                        <button className="page-btn" disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</button>
+                    </div>
+                )}
             </div>
 
             {showConfirmModal && selectedUser && (
