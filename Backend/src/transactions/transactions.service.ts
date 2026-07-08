@@ -3,6 +3,7 @@ import { DataSource, In } from 'typeorm';
 import { Account } from '../entities/account.entity';
 import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
+import { LedgerEntry, LedgerEntryType } from '../entities/ledger-entry.entity';
 
 @Injectable()
 export class TransactionsService {
@@ -70,6 +71,24 @@ export class TransactionsService {
             transaction.toAccount = toAccount;
 
             const savedTransaction = await queryRunner.manager.save(transaction);
+
+            // but toan tru tien nguoi gui
+            const debitEntry = new LedgerEntry();
+            debitEntry.account = fromAccount;
+            debitEntry.transaction = savedTransaction;
+            debitEntry.type = LedgerEntryType.DEBIT;
+            debitEntry.amount = amount;
+            debitEntry.balanceAfter = fromAccount.balance;
+            await queryRunner.manager.save(debitEntry);
+
+            // but toan cong tien nguoi nhan
+            const creditEntry = new LedgerEntry();
+            creditEntry.account = toAccount;
+            creditEntry.transaction = savedTransaction;
+            creditEntry.type = LedgerEntryType.CREDIT;
+            creditEntry.amount = amount;
+            creditEntry.balanceAfter = toAccount.balance;
+            await queryRunner.manager.save(creditEntry);
 
             await queryRunner.commitTransaction();
 

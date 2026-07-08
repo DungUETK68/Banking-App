@@ -32,4 +32,5 @@ docker-compose.override.yml
 # MD files
 10_DAYS_PLAN.md
 REQUIREMENT.md
+REQUIREMENT_ADVANCE.md
 SEQUENCE_DIAGRAM.md

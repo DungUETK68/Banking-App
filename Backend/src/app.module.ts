@@ -12,6 +12,8 @@ import { AccountsModule } from './accounts/accounts.module';
 import { AccountsService } from './accounts/accounts.service';
 import { AdminModule } from './admin/admin.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { LedgerEntry } from './entities/ledger-entry.entity';
+import { LedgerEntrySubscriber } from './subscribers/ledger-entry.subscriber';
 
 @Module({
   imports: [
@@ -32,7 +34,8 @@ import { TransactionsModule } from './transactions/transactions.module';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
-        entities: [User, Account, Transaction],
+        entities: [User, Account, Transaction, LedgerEntry],
+        subscribers: [LedgerEntrySubscriber],
       }),
     }),
 
