@@ -32,8 +32,8 @@ const Admin = () => {
     };
 
     useEffect(() => {
-        fetchUsers(page);
-    }, [page]);
+        fetchUsers(1);
+    }, []);
 
     const handleOpenModal = (user: any) => {
         setSelectedUser(user);
@@ -47,7 +47,7 @@ const Admin = () => {
         try {
             await axiosClient.patch(`/admin/users/${selectedUser.id}/status`, { status: newStatus });
             setShowConfirmModal(false);
-            fetchUsers(1);
+            fetchUsers(page);
         } catch (error) {
             alert('Có lỗi xảy ra!');
         }
@@ -136,9 +136,9 @@ const Admin = () => {
 
                 {meta && meta.totalPages > 1 && (
                     <div className="pagination">
-                        <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</button>
+                        <button className="page-btn" disabled={page <= 1} onClick={() => { setPage(page - 1); fetchUsers(page - 1); }}>Trang trước</button>
                         <span className="page-info">Trang {meta.currentPage} / {meta.totalPages}</span>
-                        <button className="page-btn" disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</button>
+                        <button className="page-btn" disabled={page >= meta.totalPages} onClick={() => { setPage(page + 1); fetchUsers(page + 1); }}>Trang sau</button>
                     </div>
                 )}
             </div>
