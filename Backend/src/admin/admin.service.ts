@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
+import { LedgerEntry } from '../entities/ledger-entry.entity';
 
 @Injectable()
 export class AdminService {
@@ -56,6 +57,41 @@ export class AdminService {
             data: {
                 id: user.id,
                 status: user.status
+            }
+        };
+    }
+    async getLedgerEntries(page: number, limit: number, filters: any) {
+        const queryBuilder = this.dataSource.manager.createQueryBuilder(LedgerEntry, 'ledger')
+            .leftJoinAndSelect('ledger.account', 'account')
+            .leftJoinAndSelect('ledger.transaction', 'transaction');
+
+        if (filters.accountId) {
+            queryBuilder.andWhere('account.id = :accountId', { accountId: filters.accountId });
+        }
+        if (filters.accountNumber) {
+            queryBuilder.andWhere('account.accountNumber = :accountNumber', { accountNumber: filters.accountNumber });
+        }
+        if (filters.transactionId) {
+            queryBuilder.andWhere('transaction.id = :transactionId', { transactionId: filters.transactionId });
+        }
+        if (filters.type) {
+            queryBuilder.andWhere('ledger.type = :type', { type: filters.type });
+        }
+
+        queryBuilder.orderBy('ledger.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+
+        const [entries, total] = await queryBuilder.getManyAndCount();
+
+        return {
+            message: 'Lấy danh sách bút toán thành công',
+            data: {
+                items: entries,
+                meta: {
+                    total,
+                    currentPage: page,
+                    totalPages: Math.ceil(total / limit),
+                    limit
+                }
             }
         };
     }

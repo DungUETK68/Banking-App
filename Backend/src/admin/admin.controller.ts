@@ -48,12 +48,29 @@ export class AdminController {
     }
 
     @Get('audit-logs')
-    @UseGuards(RolesGuard) // Yêu cầu quyền Admin (Nếu bạn đã setup @Roles thì gắn thêm vào)
+    @UseGuards(RolesGuard)
     async getAuditLogs() {
         return this.dataSource.manager.find(AuditLog, {
-            order: { createdAt: 'DESC' }, // Lấy log mới nhất
+            order: { createdAt: 'DESC' },
             take: 50
         });
     }
 
+    @Get('ledger-entries')
+    @UseGuards(RolesGuard)
+    getLedgerEntries(
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '10',
+        @Query('accountId') accountId?: string,
+        @Query('accountNumber') accountNumber?: string,
+        @Query('transactionId') transactionId?: string,
+        @Query('type') type?: string,
+    ) {
+        return this.adminService.getLedgerEntries(Number(page), Number(limit), {
+            accountId,
+            accountNumber,
+            transactionId,
+            type,
+        });
+    }
 }

@@ -126,16 +126,43 @@ export class TransactionsService {
         await queryRunner.startTransaction();
 
         try {
-            const originalTx = await queryRunner.manager.createQueryBuilder(Transaction, 'tx')
+            // 1. Lấy thông tin giao dịch (KHÔNG LOCK) để biết ai là người gửi/nhận
+            const txInfo = await queryRunner.manager.createQueryBuilder(Transaction, 'tx')
                 .innerJoinAndSelect('tx.fromAccount', 'fromAccount')
                 .innerJoinAndSelect('tx.toAccount', 'toAccount')
                 .where('tx.id = :id', { id: transactionId })
-                .setLock('pessimistic_write')
                 .getOne();
+
+            if (!txInfo) {
+                throw new NotFoundException('Không tìm thấy giao dịch gốc.');
+            }
+
+            // 2. CHỐNG DEADLOCK: Khóa Tài khoản theo đúng thứ tự như khi chuyển tiền
+            const isFromFirst = txInfo.fromAccount.accountNumber < txInfo.toAccount.accountNumber;
+            let originalSender: Account | null, originalReceiver: Account | null;
+
+            if (isFromFirst) {
+                originalSender = await queryRunner.manager.findOne(Account, { where: { id: txInfo.fromAccount.id }, lock: { mode: 'pessimistic_write' } });
+                originalReceiver = await queryRunner.manager.findOne(Account, { where: { id: txInfo.toAccount.id }, lock: { mode: 'pessimistic_write' } });
+            } else {
+                originalReceiver = await queryRunner.manager.findOne(Account, { where: { id: txInfo.toAccount.id }, lock: { mode: 'pessimistic_write' } });
+                originalSender = await queryRunner.manager.findOne(Account, { where: { id: txInfo.fromAccount.id }, lock: { mode: 'pessimistic_write' } });
+            }
+
+            if (!originalSender || !originalReceiver) {
+                throw new NotFoundException('Tài khoản không tồn tại hoặc đã bị xóa.');
+            }
+
+            // 3. Khóa Giao dịch (Transaction) sau khi đã cầm chắc 2 khóa của Tài khoản
+            const originalTx = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId },
+                lock: { mode: 'pessimistic_write' }
+            });
 
             if (!originalTx) {
                 throw new NotFoundException('Không tìm thấy giao dịch gốc.');
             }
+
             if (originalTx.status === TransactionStatus.REVERSED) {
                 throw new BadRequestException('Giao dịch này đã được hoàn tiền rồi.');
             }
@@ -145,9 +172,6 @@ export class TransactionsService {
             if (originalTx.type === TransactionType.REVERSAL) {
                 throw new BadRequestException('Không thể hoàn lại giao dịch hoàn tiền.');
             }
-
-            const originalSender = originalTx.fromAccount;
-            const originalReceiver = originalTx.toAccount;
 
             if (Number(originalReceiver.balance) < Number(originalTx.amount)) {
                 throw new BadRequestException('Người nhận không đủ số dư để hoàn lại!');
