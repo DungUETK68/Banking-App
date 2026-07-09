@@ -26,25 +26,33 @@ export class TransactionsService {
         await queryRunner.startTransaction();
 
         try {
-            const fromAccount = await queryRunner.manager.findOne(Account, {
-                where: {
-                    accountNumber: fromAccountNumber,
-                    user: { id: userId }
-                },
-                lock: { mode: 'pessimistic_write' }
-            });
+            const isFromFirst = fromAccountNumber < toAccountNumber;
+            let fromAccount: Account | null, toAccount: Account | null;
 
-            if (!fromAccount) {
-                throw new NotFoundException('Không tìm thấy tài khoản nguồn.');
-            }
+            if (isFromFirst) {
+                fromAccount = await queryRunner.manager.findOne(Account, {
+                    where: { accountNumber: fromAccountNumber, user: { id: userId } },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!fromAccount) throw new NotFoundException('Không tìm thấy tài khoản nguồn.');
 
-            const toAccount = await queryRunner.manager.findOne(Account, {
-                where: { accountNumber: toAccountNumber },
-                lock: { mode: 'pessimistic_write' }
-            });
+                toAccount = await queryRunner.manager.findOne(Account, {
+                    where: { accountNumber: toAccountNumber },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!toAccount) throw new NotFoundException('Tài khoản người nhận không tồn tại.');
+            } else {
+                toAccount = await queryRunner.manager.findOne(Account, {
+                    where: { accountNumber: toAccountNumber },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!toAccount) throw new NotFoundException('Tài khoản người nhận không tồn tại.');
 
-            if (!toAccount) {
-                throw new NotFoundException('Tài khoản người nhận không tồn tại.');
+                fromAccount = await queryRunner.manager.findOne(Account, {
+                    where: { accountNumber: fromAccountNumber, user: { id: userId } },
+                    lock: { mode: 'pessimistic_write' }
+                });
+                if (!fromAccount) throw new NotFoundException('Không tìm thấy tài khoản nguồn.');
             }
 
             const currentBalance = Number(fromAccount.balance);
