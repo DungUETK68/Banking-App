@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Send, History, LogOut, Wallet, Users } from 'lucide-react';
+import { LayoutDashboard, Send, History, LogOut, Wallet, Users, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import '../styles/layout.css';
 
@@ -33,10 +33,16 @@ const MainLayout = () => {
                         Lịch sử giao dịch
                     </NavLink>
                     {user?.role === 'admin' && (
-                        <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <Users size={20} />
-                            Quản lý người dùng
-                        </NavLink>
+                        <>
+                            <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Users size={20} />
+                                Quản lý người dùng
+                            </NavLink>
+                            <NavLink to="/admin/ledger" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <BookOpen size={20} />
+                                Sổ cái kép
+                            </NavLink>
+                        </>
                     )}
                 </nav>
                 <div className="logout-btn" onClick={handleLogout}>

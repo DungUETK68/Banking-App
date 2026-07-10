@@ -116,7 +116,7 @@ const Transfer = () => {
             if (accountResponse.data && accountResponse.data.account) {
                 setAccount(accountResponse.data.account);
             }
-        } catch (error) {
+        } catch (error: any) {
             setErrorMessage(error.response?.data?.message || 'Giao dịch thất bại, vui lòng thử lại.');
             setTimeout(() => setErrorMessage(''), 4000);
         } finally {

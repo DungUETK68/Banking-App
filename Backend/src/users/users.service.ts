@@ -43,21 +43,19 @@ export class UsersService {
     }
 
     async deleteAccount(userId: string) {
-        const user = await this.dataSource.manager.findOne(User, { 
+        const user = await this.dataSource.manager.findOne(User, {
             where: { id: userId },
-            relations: { accounts: true } // Lấy kèm các tài khoản ngân hàng để xóa mềm cùng lúc
+            relations: { accounts: true }
         });
 
         if (!user) {
             throw new NotFoundException('Người dùng không tồn tại');
         }
 
-        // Soft Delete các tài khoản ngân hàng trước
         if (user.accounts && user.accounts.length > 0) {
             await this.dataSource.manager.softRemove(user.accounts);
         }
 
-        // Soft Delete user
         await this.dataSource.manager.softRemove(user);
 
         return {
