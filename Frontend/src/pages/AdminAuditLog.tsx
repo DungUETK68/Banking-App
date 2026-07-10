@@ -68,14 +68,17 @@ const AdminAuditLog = () => {
                             logs.map((log) => (
                                 <tr key={log.id}>
                                     <td style={{ fontSize: '13px' }}>{formatDate(log.createdAt)}</td>
-                                    <td style={{ fontSize: '13px', color: '#666' }}>{log.actorId || 'Hệ thống'}</td>
+                                    <td style={{ fontSize: '13px', color: '#666' }}>
+                                        <strong>{log.actorName || 'Hệ thống'}</strong><br />
+                                        <span style={{ fontSize: '11px', color: '#888' }}>{log.actorId || ''}</span>
+                                    </td>
                                     <td>
                                         <span className="role-badge" style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1' }}>
                                             {log.action}
                                         </span>
                                     </td>
                                     <td style={{ fontWeight: 'bold' }}>
-                                        {log.entity} <br />
+                                        {log.entityNameDisplay || log.entityName} <br />
                                         <span style={{ fontSize: '11px', color: '#888', fontWeight: 'normal' }}>{log.entityId}</span>
                                     </td>
                                     <td style={{ fontSize: '12px', maxWidth: '200px' }}>

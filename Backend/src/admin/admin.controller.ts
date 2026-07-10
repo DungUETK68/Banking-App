@@ -3,7 +3,7 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { User, UserStatus } from '../entities/user.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { LedgerEntry } from '../entities/ledger-entry.entity';
 import { AuditLog } from 'src/entities/audit-log.entity';
 
@@ -50,9 +50,32 @@ export class AdminController {
     @Get('audit-logs')
     @UseGuards(RolesGuard)
     async getAuditLogs() {
-        return this.dataSource.manager.find(AuditLog, {
+        const logs = await this.dataSource.manager.find(AuditLog, {
             order: { createdAt: 'DESC' },
             take: 50
+        });
+
+        const userIds = [...new Set([
+            ...logs.map(log => log.actorId).filter(id => id),
+            ...logs.map(log => log.entityId).filter(id => id)
+        ])];
+
+        const users = userIds.length > 0 ? await this.dataSource.manager.find(User, {
+            where: { id: In(userIds) },
+            select: { id: true, fullName: true }
+        }) : [];
+
+        const userMap = new Map(users.map(u => [u.id, u.fullName]));
+
+        return logs.map(log => {
+            const actorName = log.actorId ? userMap.get(log.actorId) || 'Unknown User' : 'Hệ thống';
+            const entityName = (log.entityName === 'User' && log.entityId) ? userMap.get(log.entityId) || 'Unknown User' : log.entityName;
+
+            return {
+                ...log,
+                actorName,
+                entityNameDisplay: entityName
+            };
         });
     }
 

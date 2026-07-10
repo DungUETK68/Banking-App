@@ -10,6 +10,7 @@ import AdminLedger from './pages/AdminLedger';
 import AdminAuditLog from './pages/AdminAuditLog';
 import Transfer from './pages/Transfer';
 import History from './pages/History';
+import Settings from './pages/Settings';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -54,6 +55,7 @@ function App() {
           <Route path="/admin/audit" element={<AdminRoute><AdminAuditLog /></AdminRoute>} />
           <Route path="/transfer" element={<Transfer />} />
           <Route path='/history' element={<History />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

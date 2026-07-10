@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
 import axiosClient from '../api/axiosClient';
-import { Lock, Unlock } from 'lucide-react';
+import { Search, Lock, Unlock, ShieldAlert, Clock, Info } from 'lucide-react';
 import '../styles/admin.css';
 
 const Admin = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    
+    // History Modal States
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [userHistory, setUserHistory] = useState<any[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [selectedUserForHistory, setSelectedUserForHistory] = useState<any>(null);
+
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState<any>(null);
@@ -29,6 +36,24 @@ const Admin = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleOpenHistoryModal = async (user: any) => {
+        setSelectedUserForHistory(user);
+        setIsHistoryModalOpen(true);
+        setHistoryLoading(true);
+        try {
+            const response: any = await axiosClient.get(`/admin/users/${user.id}/history`);
+            setUserHistory(response.data);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi tải lịch sử.');
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleString('vi-VN');
     };
 
     useEffect(() => {
@@ -116,18 +141,28 @@ const Admin = () => {
                                     </span>
                                 </td>
                                 <td>
-                                    {user.role !== 'admin' && (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {user.role !== 'admin' && (
+                                            <button
+                                                onClick={() => handleOpenModal(user)}
+                                                className={`action-btn ${user.status === 'active' ? 'btn-lock' : 'btn-unlock'}`}
+                                                style={{ flex: 1 }}
+                                            >
+                                                {user.status === 'active' ? (
+                                                    <><Lock size={16} /> Khóa tài khoản</>
+                                                ) : (
+                                                    <><Unlock size={16} /> Mở khóa</>
+                                                )}
+                                            </button>
+                                        )}
                                         <button
-                                            onClick={() => handleOpenModal(user)}
-                                            className={`action-btn ${user.status === 'active' ? 'btn-lock' : 'btn-unlock'}`}
+                                            onClick={() => handleOpenHistoryModal(user)}
+                                            className="action-btn btn-unlock"
+                                            style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', flex: 1 }}
                                         >
-                                            {user.status === 'active' ? (
-                                                <><Lock size={16} /> Khóa tài khoản</>
-                                            ) : (
-                                                <><Unlock size={16} /> Mở khóa</>
-                                            )}
+                                            <Clock size={16} /> Lịch sử
                                         </button>
-                                    )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -162,11 +197,83 @@ const Admin = () => {
                                 Hủy bỏ
                             </button>
                             <button
-                                className="modal-btn confirm"
+                                className="modal-btn confirm-btn"
                                 onClick={confirmToggleStatus}
                                 style={{ backgroundColor: selectedUser.status === 'active' ? '#ef4444' : '#10b981' }}
                             >
-                                Xác nhận
+                                Xác nhận {selectedUser.status === 'active' ? 'khóa' : 'mở khóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Lịch sử thay đổi */}
+            {isHistoryModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '600px', width: '90%' }}>
+                        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Clock size={24} color="#3b82f6" />
+                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Lịch sử thay đổi thông tin</h2>
+                        </div>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '20px' }}>
+                            Hiển thị các lần thay đổi Email và Số điện thoại của tài khoản: <strong>{selectedUserForHistory?.fullName}</strong>
+                        </p>
+                        
+                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            {historyLoading ? (
+                                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Đang tải dữ liệu...</div>
+                            ) : userHistory.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#f8fafc', borderRadius: '8px', color: '#94a3b8' }}>
+                                    <Info size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+                                    Người dùng này chưa từng thay đổi thông tin nhạy cảm.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {userHistory.map((item, index) => (
+                                        <div key={item.id} style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc', position: 'relative' }}>
+                                            <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '12px', color: '#94a3b8', fontWeight: 'bold' }}>
+                                                Lần {userHistory.length - index}
+                                            </div>
+                                            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
+                                                <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                                                Thay đổi lúc: <strong>{formatDate(item.changedAt)}</strong>
+                                            </div>
+                                            
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                                                <div style={{ backgroundColor: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '4px' }}>Dữ liệu bị ghi đè</div>
+                                                    <div style={{ fontSize: '13px' }}>
+                                                        <div><span style={{ color: '#64748b' }}>Email:</span> {item.oldEmail || 'N/A'}</div>
+                                                        <div><span style={{ color: '#64748b' }}>Phone:</span> {item.oldPhoneNumber || 'N/A'}</div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                                                    <div style={{ fontSize: '11px', color: '#166534', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '4px' }}>Dữ liệu mới</div>
+                                                    <div style={{ fontSize: '13px', color: '#166534' }}>
+                                                        {(() => {
+                                                            const newData = index === 0 
+                                                                ? { email: userHistory[0]?.user?.email || selectedUserForHistory?.email, phone: userHistory[0]?.user?.phoneNumber || selectedUserForHistory?.phoneNumber }
+                                                                : { email: userHistory[index - 1].oldEmail, phone: userHistory[index - 1].oldPhoneNumber };
+                                                            return (
+                                                                <>
+                                                                    <div><span style={{ color: '#15803d' }}>Email:</span> {newData.email || 'N/A'}</div>
+                                                                    <div><span style={{ color: '#15803d' }}>Phone:</span> {newData.phone || 'N/A'}</div>
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-actions" style={{ marginTop: '20px' }}>
+                            <button className="modal-btn cancel" onClick={() => setIsHistoryModalOpen(false)}>
+                                Đóng
                             </button>
                         </div>
                     </div>

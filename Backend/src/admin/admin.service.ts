@@ -101,6 +101,7 @@ export class AdminService {
         const history = await this.dataSource.manager.find(UserHistory, {
             where: { user: { id: userId } },
             order: { changedAt: 'DESC' },
+            relations: { user: true },
         });
 
         if (!history || history.length === 0) {
