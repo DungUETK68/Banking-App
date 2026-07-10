@@ -7,6 +7,7 @@ import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import AdminLedger from './pages/AdminLedger';
+import AdminAuditLog from './pages/AdminAuditLog';
 import Transfer from './pages/Transfer';
 import History from './pages/History';
 
@@ -50,6 +51,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="/admin/ledger" element={<AdminRoute><AdminLedger /></AdminRoute>} />
+          <Route path="/admin/audit" element={<AdminRoute><AdminAuditLog /></AdminRoute>} />
           <Route path="/transfer" element={<Transfer />} />
           <Route path='/history' element={<History />} />
         </Route>

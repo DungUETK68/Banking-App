@@ -51,26 +51,26 @@ const AdminLedger = () => {
 
     return (
         <div className="admin-container">
-            <h1 className="page-title">Sổ cái kép (Ledger Entries)</h1>
-            
+            <h1 className="page-title">Sổ cái kép</h1>
+
             <div className="filter-toolbar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
                 <input
-                    type="text" 
-                    placeholder="Số tài khoản..." 
+                    type="text"
+                    placeholder="Số tài khoản..."
                     value={filters.accountNumber}
                     onChange={(e) => setFilters({ ...filters, accountNumber: e.target.value })}
                     style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
                 />
                 <input
-                    type="text" 
-                    placeholder="Mã giao dịch..." 
+                    type="text"
+                    placeholder="Mã giao dịch..."
                     value={filters.transactionId}
                     onChange={(e) => setFilters({ ...filters, transactionId: e.target.value })}
                     style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc' }}
                 />
-                <select 
-                    value={filters.type} 
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })} 
+                <select
+                    value={filters.type}
+                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
                     style={{ padding: '8px', borderRadius: '8px' }}
                 >
                     <option value="">Tất cả Bút toán</option>
@@ -111,14 +111,16 @@ const AdminLedger = () => {
                                     <td style={{ fontWeight: 'bold' }}>{entry.account?.accountNumber || 'N/A'}</td>
                                     <td>
                                         <span className={`status-badge ${entry.type === 'CREDIT' ? 'status-active' : 'status-locked'}`}
-                                            style={{ backgroundColor: entry.type === 'CREDIT' ? '#dcfce7' : '#fee2e2', 
-                                                     color: entry.type === 'CREDIT' ? '#166534' : '#991b1b' }}>
+                                            style={{
+                                                backgroundColor: entry.type === 'CREDIT' ? '#dcfce7' : '#fee2e2',
+                                                color: entry.type === 'CREDIT' ? '#166534' : '#991b1b'
+                                            }}>
                                             {entry.type}
                                         </span>
                                     </td>
-                                    <td style={{ 
-                                        fontWeight: 'bold', 
-                                        color: entry.type === 'CREDIT' ? '#10b981' : '#ef4444' 
+                                    <td style={{
+                                        fontWeight: 'bold',
+                                        color: entry.type === 'CREDIT' ? '#10b981' : '#ef4444'
                                     }}>
                                         {entry.type === 'CREDIT' ? '+' : '-'}{formatCurrency(Number(entry.amount))}
                                     </td>
@@ -132,17 +134,17 @@ const AdminLedger = () => {
 
                 {meta && meta.totalPages > 1 && (
                     <div className="pagination">
-                        <button 
-                            className="page-btn" 
-                            disabled={page <= 1} 
+                        <button
+                            className="page-btn"
+                            disabled={page <= 1}
                             onClick={() => { setPage(page - 1); fetchLedgerEntries(page - 1); }}
                         >
                             Trang trước
                         </button>
                         <span className="page-info">Trang {meta.currentPage} / {meta.totalPages}</span>
-                        <button 
-                            className="page-btn" 
-                            disabled={page >= meta.totalPages} 
+                        <button
+                            className="page-btn"
+                            disabled={page >= meta.totalPages}
                             onClick={() => { setPage(page + 1); fetchLedgerEntries(page + 1); }}
                         >
                             Trang sau

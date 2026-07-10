@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Send, History, LogOut, Wallet, Users, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Send, History, LogOut, Wallet, Users, BookOpen, Activity } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import '../styles/layout.css';
 
@@ -20,7 +20,7 @@ const MainLayout = () => {
                     <span>TD Bank</span>
                 </div>
                 <nav className="nav-links">
-                    <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <NavLink to="/" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                         <LayoutDashboard size={20} />
                         Thông tin tài khoản
                     </NavLink>
@@ -34,13 +34,17 @@ const MainLayout = () => {
                     </NavLink>
                     {user?.role === 'admin' && (
                         <>
-                            <NavLink to="/admin" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <NavLink to="/admin" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <Users size={20} />
                                 Quản lý người dùng
                             </NavLink>
                             <NavLink to="/admin/ledger" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <BookOpen size={20} />
                                 Sổ cái kép
+                            </NavLink>
+                            <NavLink to="/admin/audit" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Activity size={20} />
+                                Nhật ký hệ thống
                             </NavLink>
                         </>
                     )}
