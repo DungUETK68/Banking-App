@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
 import { Account } from './account.entity';
 
 export enum UserRole {
@@ -22,6 +22,9 @@ export class User {
     @Column({ unique: true })
     email: string;
 
+    @Column({ name: 'phone_number', unique: true, nullable: true })
+    phoneNumber: string;
+
     @Column({ name: 'password_hash' })
     passwordHash: string;
 
@@ -36,6 +39,9 @@ export class User {
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
+
+    @DeleteDateColumn({ name: 'deleted_at' })
+    deletedAt: Date;
 
     @OneToMany(() => Account, (account) => account.user)
     accounts: Account[];

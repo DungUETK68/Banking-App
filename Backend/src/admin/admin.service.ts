@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
 import { LedgerEntry } from '../entities/ledger-entry.entity';
+import { UserHistory } from '../entities/user-history.entity';
 
 @Injectable()
 export class AdminService {
@@ -93,6 +94,25 @@ export class AdminService {
                     limit
                 }
             }
+        };
+    }
+
+    async getUserHistory(userId: string) {
+        const history = await this.dataSource.manager.find(UserHistory, {
+            where: { user: { id: userId } },
+            order: { changedAt: 'DESC' },
+        });
+
+        if (!history || history.length === 0) {
+            return {
+                message: 'Người dùng này chưa từng cập nhật thông tin.',
+                data: []
+            };
+        }
+
+        return {
+            message: 'Lấy lịch sử thay đổi thông tin thành công',
+            data: history
         };
     }
 }

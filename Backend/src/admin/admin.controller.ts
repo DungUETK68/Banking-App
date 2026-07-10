@@ -73,4 +73,10 @@ export class AdminController {
             type,
         });
     }
+
+    @Get('users/:id/history')
+    @UseGuards(RolesGuard)
+    getUserHistory(@Param('id') id: string) {
+        return this.adminService.getUserHistory(id);
+    }
 }

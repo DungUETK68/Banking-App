@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, DeleteDateColumn, OneToMany, ManyToOne, JoinColumn } from "typeorm";
 import { User } from './user.entity'
 import { Transaction } from "./transaction.entity";
 
@@ -18,6 +18,9 @@ export class Account {
 
     @CreateDateColumn({ name: 'created_date' })
     createdAt: Date;
+
+    @DeleteDateColumn({ name: 'deleted_at' })
+    deletedAt: Date;
 
     @ManyToOne(() => User, (user) => user.accounts)
     @JoinColumn({ name: 'user_id' })
