@@ -1,4 +1,4 @@
-import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
 import { Account } from '../entities/account.entity';
 import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
@@ -62,16 +62,35 @@ export class TransactionsService {
 
             const LARGE_TX_LIMIT = 100000000;
             const isLargeTx = amount >= LARGE_TX_LIMIT && userRole === 'teller';
+            const OTP_LIMIT = 10000000;
+            const requiresOtp = amount >= OTP_LIMIT;
 
             // luu giao dich
             const transaction = new Transaction();
             transaction.amount = amount;
             transaction.idempotencyKey = idempotencyKey;
             transaction.type = TransactionType.TRANSFER;
-            transaction.status = isLargeTx ? TransactionStatus.PENDING : TransactionStatus.SUCCESS;
             transaction.description = description || 'Chuyển khoản';
             transaction.fromAccount = fromAccount;
             transaction.toAccount = toAccount;
+
+            if (requiresOtp) {
+                transaction.status = TransactionStatus.PENDING_OTP;
+                const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+                transaction.otpCode = otp;
+                transaction.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+                const savedTransaction = await queryRunner.manager.save(transaction);
+
+                console.log(`\n\n[OTP] 🔔 Mã OTP cho giao dịch chuyển ${amount}đ (ID: ${savedTransaction.id}) là: ${otp}\n\n`);
+
+                await queryRunner.commitTransaction();
+                return {
+                    message: 'Vui lòng xác thực OTP để hoàn tất giao dịch.',
+                    data: { transactionId: savedTransaction.id, requiresOtp: true }
+                };
+            }
+
+            transaction.status = isLargeTx ? TransactionStatus.PENDING : TransactionStatus.SUCCESS;
             const savedTransaction = await queryRunner.manager.save(transaction);
 
             if (isLargeTx) {
@@ -123,6 +142,155 @@ export class TransactionsService {
             }
 
             throw new InternalServerErrorException('Giao dịch thất bại do lỗi hệ thống.');
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    async verifyOtp(userId: string, transactionId: string, otp: string, userRole: string) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const lockedTx = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId, status: TransactionStatus.PENDING_OTP },
+                lock: { mode: 'pessimistic_write' }
+            });
+
+            if (!lockedTx) {
+                throw new NotFoundException('Không tìm thấy giao dịch chờ OTP hợp lệ.');
+            }
+
+            const transaction = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId },
+                relations: { fromAccount: { user: true }, toAccount: true }
+            });
+
+            if (!transaction) {
+                throw new NotFoundException('Không tìm thấy giao dịch chờ OTP hợp lệ.');
+            }
+
+            transaction.status = lockedTx.status;
+            transaction.otpCode = lockedTx.otpCode;
+            transaction.otpExpiresAt = lockedTx.otpExpiresAt;
+            transaction.otpAttempts = lockedTx.otpAttempts;
+            transaction.amount = lockedTx.amount;
+
+            if (userRole === 'customer' && transaction.fromAccount.user.id !== userId) {
+                throw new UnauthorizedException('Bạn không có quyền xác thực giao dịch này.');
+            }
+
+            if (transaction.otpExpiresAt && transaction.otpExpiresAt < new Date()) {
+                transaction.status = TransactionStatus.FAILED;
+                transaction.description = 'Hủy do OTP hết hạn';
+                await queryRunner.manager.save(transaction);
+                await queryRunner.commitTransaction();
+                throw new BadRequestException('Mã OTP đã hết hạn. Giao dịch bị hủy.');
+            }
+
+            if (transaction.otpCode !== otp) {
+                transaction.otpAttempts += 1;
+                if (transaction.otpAttempts >= 3) {
+                    transaction.status = TransactionStatus.FAILED;
+                    transaction.description = 'Hủy do nhập sai OTP quá 3 lần';
+                    await queryRunner.manager.save(transaction);
+                    await queryRunner.commitTransaction();
+                    throw new BadRequestException('Giao dịch đã bị hủy do nhập sai mã OTP quá 3 lần.');
+                }
+                await queryRunner.manager.save(transaction);
+                await queryRunner.commitTransaction();
+                throw new BadRequestException(`Mã OTP không đúng. Bạn còn ${3 - transaction.otpAttempts} lần thử.`);
+            }
+
+            const isFromFirst = transaction.fromAccount.accountNumber < transaction.toAccount.accountNumber;
+            let fromAccount: Account | null, toAccount: Account | null;
+
+            if (isFromFirst) {
+                fromAccount = await queryRunner.manager.findOne(Account, {
+                    where: { id: transaction.fromAccount.id }, lock: { mode: 'pessimistic_write' }
+                });
+                toAccount = await queryRunner.manager.findOne(Account, {
+                    where: { id: transaction.toAccount.id }, lock: { mode: 'pessimistic_write' }
+                });
+            } else {
+                toAccount = await queryRunner.manager.findOne(Account, {
+                    where: { id: transaction.toAccount.id }, lock: { mode: 'pessimistic_write' }
+                });
+                fromAccount = await queryRunner.manager.findOne(Account, {
+                    where: { id: transaction.fromAccount.id }, lock: { mode: 'pessimistic_write' }
+                });
+            }
+
+            if (!fromAccount || !toAccount) {
+                throw new NotFoundException('Tài khoản không tồn tại.');
+            }
+
+            const currentBalance = Number(fromAccount.balance);
+            const amount = Number(transaction.amount);
+            if (currentBalance < amount) {
+                transaction.status = TransactionStatus.FAILED;
+                transaction.description = 'Hủy do số dư không đủ tại thời điểm xác thực';
+                await queryRunner.manager.save(transaction);
+                await queryRunner.commitTransaction();
+                throw new BadRequestException('Số dư tài khoản không đủ để thực hiện giao dịch.');
+            }
+
+            fromAccount.balance = currentBalance - amount;
+            await queryRunner.manager.save(fromAccount);
+            toAccount.balance = Number(toAccount.balance) + amount;
+            await queryRunner.manager.save(toAccount);
+
+            const debitEntry = new LedgerEntry();
+            debitEntry.account = fromAccount;
+            debitEntry.transaction = transaction;
+            debitEntry.type = LedgerEntryType.DEBIT;
+            debitEntry.amount = amount;
+            debitEntry.balanceAfter = fromAccount.balance;
+            await queryRunner.manager.save(debitEntry);
+
+            const creditEntry = new LedgerEntry();
+            creditEntry.account = toAccount;
+            creditEntry.transaction = transaction;
+            creditEntry.type = LedgerEntryType.CREDIT;
+            creditEntry.amount = amount;
+            creditEntry.balanceAfter = toAccount.balance;
+            await queryRunner.manager.save(creditEntry);
+
+            const LARGE_TX_LIMIT = 100000000;
+            const isLargeTx = amount >= LARGE_TX_LIMIT && userRole === 'teller';
+
+            transaction.otpCode = null;
+            transaction.otpExpiresAt = null;
+            transaction.status = isLargeTx ? TransactionStatus.PENDING : TransactionStatus.SUCCESS;
+            await queryRunner.manager.save(transaction);
+
+            await queryRunner.commitTransaction();
+
+            if (isLargeTx) {
+                return {
+                    message: 'Xác thực OTP thành công. Giao dịch lớn đang chờ Admin duyệt.',
+                    data: { transactionId: transaction.id }
+                };
+            }
+
+            return {
+                message: 'Chuyển khoản thành công.',
+                data: {
+                    transactionId: transaction.id,
+                    newBalance: fromAccount.balance
+                }
+            };
+
+        } catch (error) {
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
+            console.error("verifyOtp error: ", error);
+            if (error instanceof BadRequestException || error instanceof NotFoundException || error instanceof UnauthorizedException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Lỗi hệ thống khi xác thực OTP.');
         } finally {
             await queryRunner.release();
         }

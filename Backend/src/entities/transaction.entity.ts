@@ -8,9 +8,11 @@ export enum TransactionType {
 }
 
 export enum TransactionStatus {
+    PENDING = 'pending',
+    PENDING_OTP = 'pending_otp',
     SUCCESS = 'success',
     FAILED = 'failed',
-    PENDING = 'pending',
+    CANCELLED = 'cancelled',
     REVERSED = 'reversed',
 }
 
@@ -28,8 +30,17 @@ export class Transaction {
     @Column({ type: 'enum', enum: TransactionType, default: TransactionType.TRANSFER })
     type: TransactionType;
 
-    @Column({ type: 'enum', enum: TransactionStatus, default: TransactionStatus.PENDING })
+    @Column({ type: 'enum', enum: TransactionStatus })
     status: TransactionStatus;
+
+    @Column({ type: 'varchar', name: 'otp_code', nullable: true })
+    otpCode: string | null;
+
+    @Column({ name: 'otp_expires_at', type: 'timestamp', nullable: true })
+    otpExpiresAt: Date | null;
+
+    @Column({ name: 'otp_attempts', default: 0 })
+    otpAttempts: number;
 
     @Column({ nullable: true })
     description: string;

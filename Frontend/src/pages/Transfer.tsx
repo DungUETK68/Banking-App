@@ -16,6 +16,9 @@ const Transfer = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [receiverName, setReceiverName] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [pendingTransactionId, setPendingTransactionId] = useState('');
 
     // tai danh sach account
     useEffect(() => {
@@ -98,7 +101,7 @@ const Transfer = () => {
             const idempotencyKey = crypto.randomUUID();
             const amount = Number(formData.amount);
 
-            await axiosClient.post('/transactions/transfer', {
+            const response = await axiosClient.post('/transactions/transfer', {
                 fromAccountNumber: formData.fromAccountNumber,
                 toAccountNumber: formData.toAccountNumber,
                 amount: amount,
@@ -106,7 +109,13 @@ const Transfer = () => {
                 idempotencyKey: idempotencyKey
             });
 
-            setSuccessMessage('Giao dịch thành công!');
+            if ((response as any).data?.requiresOtp) {
+                setPendingTransactionId((response as any).data.transactionId);
+                setShowOtpModal(true);
+                return;
+            }
+
+            setSuccessMessage((response as any).message || 'Giao dịch thành công!');
             setTimeout(() => setSuccessMessage(''), 4000);
             // xoa form
             setFormData(prev => ({ ...prev, toAccountNumber: '', amount: '', description: '' }));
@@ -119,6 +128,47 @@ const Transfer = () => {
         } catch (error: any) {
             setErrorMessage(error.response?.data?.message || 'Giao dịch thất bại, vui lòng thử lại.');
             setTimeout(() => setErrorMessage(''), 4000);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const confirmOtp = async () => {
+        if (!otpCode) {
+            setErrorMessage('Vui lòng nhập mã OTP.');
+            setTimeout(() => setErrorMessage(''), 4000);
+            return;
+        }
+
+        setLoading(true);
+        setErrorMessage('');
+
+        try {
+            const response = await axiosClient.post(`/transactions/${pendingTransactionId}/verify-otp`, {
+                otp: otpCode
+            });
+
+            setShowOtpModal(false);
+            setSuccessMessage((response as any).message || 'Giao dịch thành công!');
+            setTimeout(() => setSuccessMessage(''), 4000);
+
+            setFormData(prev => ({ ...prev, toAccountNumber: '', amount: '', description: '' }));
+            setOtpCode('');
+            setPendingTransactionId('');
+
+            const accountResponse: any = await axiosClient.get('/accounts/me');
+            if (accountResponse.data && accountResponse.data.account) {
+                setAccount(accountResponse.data.account);
+            }
+        } catch (error: any) {
+            setErrorMessage(error.response?.data?.message || 'Xác thực OTP thất bại.');
+            setTimeout(() => setErrorMessage(''), 4000);
+
+            if (error.response?.data?.message?.includes('hủy') || error.response?.data?.message?.includes('hết hạn')) {
+                setShowOtpModal(false);
+                setOtpCode('');
+                setPendingTransactionId('');
+            }
         } finally {
             setLoading(false);
         }
@@ -230,11 +280,39 @@ const Transfer = () => {
                                 Tới người nhận: <strong>{receiverName || formData.toAccountNumber}</strong>
                             </p>
                             <div className="modal-actions">
-                                <button className="modal-btn cancel" onClick={() => setShowModal(false)}>
+                                <button className="modal-btn cancel" onClick={() => setShowModal(false)} disabled={loading}>
                                     Hủy bỏ
                                 </button>
-                                <button className="modal-btn confirm" onClick={confirmTransfer}>
-                                    Xác nhận chuyển
+                                <button className="modal-btn confirm" onClick={confirmTransfer} disabled={loading}>
+                                    {loading ? 'Đang xử lý...' : 'Xác nhận chuyển'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showOtpModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h3 style={{ marginTop: 0 }}>Xác thực OTP</h3>
+                            <p style={{ marginBottom: '20px' }}>
+                                Giao dịch lớn cần xác thực bằng mã OTP. Vui lòng kiểm tra log hệ thống (tạm thời) và nhập mã 6 số vào bên dưới.
+                            </p>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Nhập 6 số OTP..."
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value)}
+                                maxLength={6}
+                                style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '4px', marginBottom: '20px' }}
+                            />
+                            <div className="modal-actions">
+                                <button className="modal-btn cancel" onClick={() => setShowOtpModal(false)} disabled={loading}>
+                                    Hủy bỏ
+                                </button>
+                                <button className="modal-btn confirm" onClick={confirmOtp} disabled={loading}>
+                                    {loading ? 'Đang xác thực...' : 'Xác nhận OTP'}
                                 </button>
                             </div>
                         </div>

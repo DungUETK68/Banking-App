@@ -22,6 +22,16 @@ export class TransactionsController {
         return this.transactionsService.transfer(userId, userRole, transferDto);
     }
 
+    @Post(':id/verify-otp')
+    verifyOtp(
+        @Req() req: any,
+        @Param('id') id: string,
+        @Body('otp') otp: string
+    ) {
+        if (!otp) throw new BadRequestException('Vui lòng nhập mã OTP.');
+        return this.transactionsService.verifyOtp(req.user.id, id, otp, req.user.role);
+    }
+
     @Post(':id/reverse')
     @UseGuards(RolesGuard)
     reverseTransaction(@Param('id') id: string) {
