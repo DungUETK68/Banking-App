@@ -7,8 +7,10 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../entities/user.entity';
 import { Account } from '../entities/account.entity';
+import { Session } from '../entities/session.entity';
 import { ConfigService } from '@nestjs/config';
 import { RefreshTokenDto } from './dto/refresh.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -63,7 +65,7 @@ export class AuthService {
         }
     }
 
-    async login(loginDto: LoginDto) {
+    async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
         const { email, password } = loginDto;
 
         try {
@@ -81,7 +83,7 @@ export class AuthService {
                 throw new UnauthorizedException('Tài khoản của bạn đã bị khóa.');
             }
 
-            const tokens = await this.generateTokens(user);
+            const tokens = await this.generateTokens(user, ipAddress, userAgent);
 
             return {
                 message: 'Đăng nhập thành công.',
@@ -105,8 +107,22 @@ export class AuthService {
         }
     }
 
-    private async generateTokens(user: User) {
-        const payload = { sub: user.id, email: user.email, role: user.role };
+    private async generateTokens(user: User, ipAddress?: string, userAgent?: string, existingSessionId?: string) {
+        // Create or reuse session
+        let session = new Session();
+        if (existingSessionId) {
+            const existing = await this.dataSource.manager.findOne(Session, { where: { id: existingSessionId } });
+            if (existing) session = existing;
+        } else {
+            session.user = user;
+            session.userId = user.id;
+            session.ipAddress = ipAddress || '';
+            session.userAgent = userAgent || '';
+            session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            session = await this.dataSource.manager.save(session);
+        }
+
+        const payload = { sub: user.id, email: user.email, role: user.role, sessionId: session.id };
 
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, {
@@ -122,37 +138,50 @@ export class AuthService {
         const salt = await bcrypt.genSalt();
         const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
 
-        await this.dataSource.manager.update(User, { id: user.id }, { refreshToken: refreshTokenHash });
+        session.refreshTokenHash = refreshTokenHash;
+        session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await this.dataSource.manager.save(session);
 
-        return {
-            accessToken,
-            refreshToken
-        };
+        return { accessToken, refreshToken };
     }
 
-    async refreshToken(refreshDto: RefreshTokenDto) {
-        const { userId, refreshToken } = refreshDto;
+    async refreshToken(refreshDto: RefreshTokenDto, ipAddress?: string, userAgent?: string) {
+        const { refreshToken } = refreshDto;
 
         try {
-            const user = await this.dataSource.manager.findOne(User, { where: { id: userId } });
-            if (!user || !user.refreshToken) {
-                throw new UnauthorizedException('Access Denied');
-            }
-
+            let payload: any;
             try {
-                await this.jwtService.verifyAsync(refreshToken, {
+                payload = await this.jwtService.verifyAsync(refreshToken, {
                     secret: this.configService.get<string>('JWT_REFRESH_SECRET')!
                 });
             } catch (error) {
                 throw new UnauthorizedException('Invalid or expired refresh token');
             }
 
-            const isRefreshTokenMatch = await bcrypt.compare(refreshToken, user.refreshToken);
+            const sessionId = payload.sessionId;
+            if (!sessionId) {
+                throw new UnauthorizedException('Access Denied');
+            }
+
+            const session = await this.dataSource.manager.findOne(Session, {
+                where: { id: sessionId },
+                relations: { user: true }
+            });
+
+            if (!session || !session.user || session.expiresAt < new Date()) {
+                throw new UnauthorizedException('Session expired or invalid');
+            }
+
+            const isRefreshTokenMatch = await bcrypt.compare(refreshToken, session.refreshTokenHash);
             if (!isRefreshTokenMatch) {
                 throw new UnauthorizedException('Access Denied');
             }
 
-            const tokens = await this.generateTokens(user);
+
+            if (ipAddress) session.ipAddress = ipAddress;
+            if (userAgent) session.userAgent = userAgent;
+
+            const tokens = await this.generateTokens(session.user, session.ipAddress, session.userAgent, session.id);
 
             return {
                 message: 'Token refreshed successfully',
@@ -163,8 +192,47 @@ export class AuthService {
             if (error instanceof UnauthorizedException) {
                 throw error;
             }
-
             throw new InternalServerErrorException('System error. Please try again later.');
+        }
+    }
+
+    async logout(sessionId: string) {
+        try {
+            if (sessionId) {
+                await this.dataSource.manager.delete(Session, { id: sessionId });
+            }
+            return { message: 'Đăng xuất thành công' };
+        } catch (error) {
+            throw new InternalServerErrorException('Có lỗi xảy ra khi đăng xuất');
+        }
+    }
+
+    async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+        const { oldPassword, newPassword } = changePasswordDto;
+
+        try {
+            const user = await this.dataSource.manager.findOne(User, { where: { id: userId } });
+            if (!user) {
+                throw new UnauthorizedException('Người dùng không tồn tại.');
+            }
+
+            const isPasswordMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+            if (!isPasswordMatch) {
+                throw new UnauthorizedException('Mật khẩu cũ không chính xác.');
+            }
+
+            const salt = await bcrypt.genSalt();
+            user.passwordHash = await bcrypt.hash(newPassword, salt);
+            await this.dataSource.manager.save(user);
+
+            await this.dataSource.manager.delete(Session, { userId: user.id });
+
+            return { message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.' };
+        } catch (error) {
+            if (error instanceof UnauthorizedException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Lỗi hệ thống khi đổi mật khẩu.');
         }
     }
 }

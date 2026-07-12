@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
 import { Account } from './account.entity';
+import { Session } from './session.entity';
 
 export enum UserRole {
     CUSTOMER = 'customer',
@@ -29,9 +30,6 @@ export class User {
     @Column({ name: 'password_hash' })
     passwordHash: string;
 
-    @Column({ name: 'refresh_token', nullable: true })
-    refreshToken: string;
-
     @Column({ type: 'enum', enum: UserRole, default: UserRole.CUSTOMER })
     role: UserRole;
 
@@ -46,4 +44,7 @@ export class User {
 
     @OneToMany(() => Account, (account) => account.user)
     accounts: Account[];
+
+    @OneToMany(() => Session, (session) => session.user)
+    sessions: Session[];
 }

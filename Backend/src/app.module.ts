@@ -18,6 +18,7 @@ import { AuditLog } from './entities/audit-log.entity';
 import { AuditLogSubscriber } from './subscribers/audit-log.subscriber';
 import { UserHistory } from './entities/user-history.entity';
 import { UserHistorySubscriber } from './subscribers/user-history.subscriber';
+import { Session } from './entities/session.entity';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { UserHistorySubscriber } from './subscribers/user-history.subscriber';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
-        entities: [User, Account, Transaction, LedgerEntry, AuditLog, UserHistory],
+        entities: [User, Account, Transaction, LedgerEntry, AuditLog, UserHistory, Session],
         subscribers: [LedgerEntrySubscriber, AuditLogSubscriber, UserHistorySubscriber],
       }),
     }),

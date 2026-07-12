@@ -23,6 +23,14 @@ const Settings = () => {
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    const [passwordData, setPasswordData] = useState({
+        oldPassword: '',
+        newPassword: ''
+    });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
     useEffect(() => {
         if (user) {
             setFormData({
@@ -56,6 +64,33 @@ const Settings = () => {
             setTimeout(() => setErrorMessage(''), 4000);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+    };
+
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordLoading(true);
+        setPasswordSuccess('');
+        setPasswordError('');
+
+        try {
+            const res: any = await axiosClient.post('/auth/change-password', passwordData);
+            if (res.data) {
+                setPasswordSuccess(res.data.message || 'Đổi mật khẩu thành công!');
+                setTimeout(() => {
+                    logout();
+                    navigate('/login');
+                }, 2000);
+            }
+        } catch (error: any) {
+            setPasswordError(error.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.');
+            setTimeout(() => setPasswordError(''), 4000);
+        } finally {
+            setPasswordLoading(false);
         }
     };
 
@@ -158,6 +193,60 @@ const Settings = () => {
                     >
                         <Save size={18} />
                         {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </button>
+                </form>
+        </div>
+
+            <div style={{ marginTop: '30px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                    Đổi mật khẩu
+                </h3>
+                
+                {passwordSuccess && (
+                    <div className="toast-message success" style={{ marginBottom: '15px' }}>
+                        ✅ {passwordSuccess}
+                    </div>
+                )}
+                {passwordError && (
+                    <div className="toast-message error" style={{ marginBottom: '15px' }}>
+                        ⚠️ {passwordError}
+                    </div>
+                )}
+
+                <form onSubmit={handleUpdatePassword}>
+                    <div className="input-group" style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>Mật khẩu hiện tại</label>
+                        <input
+                            type="password"
+                            name="oldPassword"
+                            value={passwordData.oldPassword}
+                            onChange={handlePasswordChange}
+                            placeholder="Nhập mật khẩu hiện tại..."
+                            required
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                        />
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: '30px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>Mật khẩu mới</label>
+                        <input
+                            type="password"
+                            name="newPassword"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            placeholder="Nhập mật khẩu mới..."
+                            required
+                            minLength={6}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={passwordLoading}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: passwordLoading ? 'not-allowed' : 'pointer' }}
+                    >
+                        {passwordLoading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
                     </button>
                 </form>
             </div>

@@ -4,6 +4,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { Session } from '../entities/session.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -25,9 +26,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             throw new UnauthorizedException('Token hết hạn hoặc tài khoản đang bị khóa.');
         }
 
+        if (payload.sessionId) {
+            const session = await this.dataSource.manager.findOne(Session, {
+                where: { id: payload.sessionId }
+            });
+
+            if (!session) {
+                throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã bị đăng xuất ở nơi khác.');
+            }
+        }
+
         // gan vao req.user
         return {
             id: user.id,
+            sessionId: payload.sessionId,
             email: user.email,
             role: user.role,
             fullName: user.fullName

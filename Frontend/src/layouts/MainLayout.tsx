@@ -1,15 +1,22 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Send, History, LogOut, Wallet, Users, BookOpen, Activity, Settings, ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import axiosClient from '../api/axiosClient';
 import '../styles/layout.css';
 
 const MainLayout = () => {
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
+    const handleLogout = async () => {
+        try {
+            await axiosClient.post('/auth/logout');
+        } catch (error) {
+            console.error('Lỗi khi đăng xuất:', error);
+        } finally {
+            logout(); // Xóa dữ liệu local
+            navigate('/login');
+        }
     };
 
     return (
