@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import axiosClient from '../api/axiosClient';
-import { Lock, Unlock, Clock, Info } from 'lucide-react';
+import { Lock, Unlock, Clock, Info, Trash2 } from 'lucide-react';
 import '../styles/admin.css';
 
 const Admin = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // History Modal States
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -75,6 +76,22 @@ const Admin = () => {
             fetchUsers(page);
         } catch (error) {
             alert('Có lỗi xảy ra!');
+        }
+    };
+
+    const handleOpenDeleteModal = (user: any) => {
+        setSelectedUser(user);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!selectedUser) return;
+        try {
+            await axiosClient.delete(`/admin/users/${selectedUser.id}`);
+            setShowDeleteModal(false);
+            fetchUsers(page);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng!');
         }
     };
 
@@ -162,6 +179,15 @@ const Admin = () => {
                                         >
                                             <Clock size={16} /> Lịch sử
                                         </button>
+                                        {user.role !== 'admin' && (
+                                            <button
+                                                onClick={() => handleOpenDeleteModal(user)}
+                                                className="action-btn"
+                                                style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', flex: 1 }}
+                                            >
+                                                <Trash2 size={16} /> Xóa
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -202,6 +228,32 @@ const Admin = () => {
                                 style={{ backgroundColor: selectedUser.status === 'active' ? '#ef4444' : '#10b981' }}
                             >
                                 Xác nhận {selectedUser.status === 'active' ? 'khóa' : 'mở khóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && selectedUser && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Xác nhận xóa tài khoản</h3>
+                        <p>
+                            Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản <strong>{selectedUser.fullName}</strong> ({selectedUser.email}) không?
+                        </p>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                            Hành động này sẽ xóa hoàn toàn tài khoản và không thể hoàn tác.
+                        </p>
+                        <div className="modal-actions">
+                            <button className="modal-btn cancel" onClick={() => setShowDeleteModal(false)}>
+                                Hủy bỏ
+                            </button>
+                            <button
+                                className="modal-btn confirm-btn"
+                                onClick={confirmDeleteUser}
+                                style={{ backgroundColor: '#ef4444' }}
+                            >
+                                Xác nhận xóa
                             </button>
                         </div>
                     </div>

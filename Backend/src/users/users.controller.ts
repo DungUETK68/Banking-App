@@ -12,9 +12,4 @@ export class UsersController {
     updateProfile(@Request() req: any, @Body() updateProfileDto: UpdateProfileDto) {
         return this.usersService.updateProfile(req.user.id, updateProfileDto);
     }
-
-    @Delete('me')
-    deleteAccount(@Request() req: any) {
-        return this.usersService.deleteAccount(req.user.id);
-    }
 }

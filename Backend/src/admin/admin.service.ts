@@ -5,6 +5,7 @@ import { LedgerEntry } from '../entities/ledger-entry.entity';
 import { UserHistory } from '../entities/user-history.entity';
 import { Transaction } from '../entities/transaction.entity';
 import { AuditLog } from '../entities/audit-log.entity';
+import { Account } from '../entities/account.entity';
 
 @Injectable()
 export class AdminService {
@@ -64,6 +65,27 @@ export class AdminService {
         };
     }
 
+    async deleteUser(userId: string) {
+        const user = await this.dataSource.manager.findOne(User, {
+            where: { id: userId },
+            relations: { accounts: true }
+        });
+
+        if (!user) {
+            throw new NotFoundException('Người dùng không tồn tại');
+        }
+
+        if (user.accounts && user.accounts.length > 0) {
+            await this.dataSource.manager.softRemove(user.accounts);
+        }
+
+        await this.dataSource.manager.softRemove(user);
+
+        return {
+            message: 'Xóa tài khoản thành công'
+        };
+    }
+
     async testDeleteLedger() {
         const firstEntry = await this.dataSource.manager.findOne(LedgerEntry, { where: {} });
         if (!firstEntry) return 'Chưa có bút toán nào để test!';
@@ -86,7 +108,8 @@ export class AdminService {
 
         const users = userIds.length > 0 ? await this.dataSource.manager.find(User, {
             where: { id: In(userIds) },
-            select: { id: true, fullName: true }
+            select: { id: true, fullName: true },
+            withDeleted: true
         }) : [];
 
         const userMap = new Map(users.map(u => [u.id, u.fullName]));
@@ -118,6 +141,7 @@ export class AdminService {
 
     async getLedgerEntries(page: number, limit: number, filters: any) {
         const queryBuilder = this.dataSource.manager.createQueryBuilder(LedgerEntry, 'ledger')
+            .withDeleted()
             .leftJoinAndSelect('ledger.account', 'account')
             .leftJoinAndSelect('ledger.transaction', 'transaction');
 
@@ -174,6 +198,7 @@ export class AdminService {
 
     async getAllTransactions(page: number = 1, limit: number = 10, filters?: { type?: string; status?: string; transactionId?: string }) {
         const queryBuilder = this.dataSource.manager.createQueryBuilder(Transaction, 'tx')
+            .withDeleted()
             .leftJoinAndSelect('tx.fromAccount', 'fromAccount')
             .leftJoinAndSelect('fromAccount.user', 'fromUser')
             .leftJoinAndSelect('tx.toAccount', 'toAccount')

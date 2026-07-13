@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, BadRequestException, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Body, UseGuards, BadRequestException, Query } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -32,6 +32,11 @@ export class AdminController {
         }
 
         return this.adminService.updateUserStatus(id, status);
+    }
+
+    @Delete('users/:id')
+    deleteUser(@Param('id') id: string) {
+        return this.adminService.deleteUser(id);
     }
 
     @Get('test-delete-ledger')

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import axiosClient from '../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Save, Trash2, AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
+import { User, Mail, Phone, Save, Settings as SettingsIcon } from 'lucide-react';
 import '../styles/transfer.css';
 
 const Settings = () => {
@@ -18,10 +18,6 @@ const Settings = () => {
     const [loading, setLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteConfirmText, setDeleteConfirmText] = useState('');
-    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const [passwordData, setPasswordData] = useState({
         oldPassword: '',
@@ -91,26 +87,6 @@ const Settings = () => {
             setTimeout(() => setPasswordError(''), 4000);
         } finally {
             setPasswordLoading(false);
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        if (deleteConfirmText !== 'XAC NHAN') {
-            alert('Vui lòng nhập chính xác chữ "XAC NHAN".');
-            return;
-        }
-
-        setDeleteLoading(true);
-        try {
-            await axiosClient.delete('/users/me');
-            alert('Tài khoản của bạn đã được vô hiệu hóa thành công.');
-            logout();
-            navigate('/login');
-        } catch (error: any) {
-            alert(error.response?.data?.message || 'Có lỗi xảy ra khi xóa tài khoản.');
-        } finally {
-            setDeleteLoading(false);
-            setShowDeleteModal(false);
         }
     };
 
@@ -250,61 +226,7 @@ const Settings = () => {
                     </button>
                 </form>
             </div>
-
-            <div style={{ backgroundColor: '#fff1f2', padding: '20px', borderRadius: '12px', marginTop: '30px', border: '1px solid #fecdd3' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px', color: '#e11d48', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AlertTriangle size={18} /> Danger Zone
-                    </h3>
-                    <p style={{ color: '#be123c', fontSize: '13px', marginBottom: '15px' }}>
-                        Một khi bạn xóa tài khoản, bạn sẽ không thể đăng nhập lại được nữa. Tất cả dữ liệu của bạn sẽ được ẩn đi.
-                        Hành động này không thể hoàn tác.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={() => setShowDeleteModal(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                        <Trash2 size={16} />
-                        Xóa tài khoản vĩnh viễn
-                    </button>
-                </div>
-            </div>
-
-            {/* Modal Xóa Tài Khoản */}
-            {showDeleteModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
-                        <h3 style={{ marginTop: 0, color: '#e11d48', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <AlertTriangle size={24} /> Xác nhận xóa
-                        </h3>
-                        <p style={{ color: '#475569', fontSize: '14px', marginBottom: '20px', lineHeight: '1.5' }}>
-                            Bạn đang thực hiện thao tác nguy hiểm. Vui lòng nhập chữ <strong>XAC NHAN</strong> (viết hoa, không dấu) vào ô bên dưới để tiếp tục.
-                        </p>
-                        <input
-                            type="text"
-                            value={deleteConfirmText}
-                            onChange={(e) => setDeleteConfirmText(e.target.value)}
-                            placeholder="XAC NHAN"
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '20px' }}
-                        />
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}
-                                style={{ padding: '8px 16px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                onClick={handleDeleteAccount}
-                                disabled={deleteConfirmText !== 'XAC NHAN' || deleteLoading}
-                                style={{ padding: '8px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: (deleteConfirmText !== 'XAC NHAN' || deleteLoading) ? 'not-allowed' : 'pointer', fontWeight: '500', opacity: (deleteConfirmText !== 'XAC NHAN' || deleteLoading) ? 0.6 : 1 }}
-                            >
-                                {deleteLoading ? 'Đang xóa...' : 'Xóa tài khoản'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+        </div>
         </div>
     );
 };
