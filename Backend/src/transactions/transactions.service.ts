@@ -283,6 +283,53 @@ export class TransactionsService {
         }
     }
 
+    async cancelTransaction(userId: string, transactionId: string, userRole: string) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const lockedTx = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId, status: TransactionStatus.PENDING_OTP },
+                lock: { mode: 'pessimistic_write' }
+            });
+
+            if (!lockedTx) {
+                throw new NotFoundException('Không tìm thấy giao dịch chờ OTP hợp lệ.');
+            }
+
+            const transaction = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId },
+                relations: { fromAccount: { user: true } }
+            });
+
+            if (!transaction) {
+                throw new NotFoundException('Không tìm thấy giao dịch chờ OTP hợp lệ.');
+            }
+
+            if (userRole === 'customer' && transaction.fromAccount.user.id !== userId) {
+                throw new UnauthorizedException('Bạn không có quyền hủy giao dịch này.');
+            }
+
+            transaction.status = TransactionStatus.FAILED;
+            transaction.description = 'Hủy do người dùng từ chối';
+            await queryRunner.manager.save(transaction);
+            await queryRunner.commitTransaction();
+
+            return { message: 'Đã hủy giao dịch thành công.' };
+        } catch (error) {
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
+            if (error instanceof NotFoundException || error instanceof UnauthorizedException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Có lỗi xảy ra khi hủy giao dịch.');
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
     async approveLargeTransaction(transactionId: string) {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -476,7 +523,7 @@ export class TransactionsService {
     }
 
     async getTransactions(userId: string, accountNumber: string, page: number = 1, limit: number = 10,
-        filters?: { type?: string; minAmount?: number; maxAmount?: number; startDate?: string; endDate?: string }
+        filters?: { type?: string; minAmount?: number; maxAmount?: number; startDate?: string; endDate?: string; status?: string }
     ) {
         const account = await this.dataSource.manager.findOne(Account, {
             where: {
@@ -518,6 +565,11 @@ export class TransactionsService {
             const end = new Date(filters.endDate);
             end.setHours(23, 59, 59, 999);
             queryBuilder.andWhere('tx.createdAt <= :endDate', { endDate: end });
+        }
+
+        // trang thai
+        if (filters?.status) {
+            queryBuilder.andWhere('tx.status = :status', { status: filters.status });
         }
 
         queryBuilder.orderBy('tx.createdAt', 'DESC').skip((page - 1) * limit).take(limit);

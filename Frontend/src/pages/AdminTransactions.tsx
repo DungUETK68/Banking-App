@@ -89,8 +89,12 @@ const AdminTransactions = () => {
                 return <span className="status-badge" style={{ backgroundColor: '#dcfce7', color: '#166534' }}><CheckCircle2 size={12} style={{ marginRight: '4px', display: 'inline' }} /> Thành công</span>;
             case 'failed':
                 return <span className="status-badge" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}><XCircle size={12} style={{ marginRight: '4px', display: 'inline' }} /> Thất bại</span>;
+            case 'cancelled':
+                return <span className="status-badge" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}><XCircle size={12} style={{ marginRight: '4px', display: 'inline' }} /> Bị hủy</span>;
             case 'pending':
-                return <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}><AlertCircle size={12} style={{ marginRight: '4px', display: 'inline' }} /> Đang xử lý</span>;
+                return <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}><AlertCircle size={12} style={{ marginRight: '4px', display: 'inline' }} /> Chờ duyệt</span>;
+            case 'pending_otp':
+                return <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}><AlertCircle size={12} style={{ marginRight: '4px', display: 'inline' }} /> Chờ OTP</span>;
             case 'reversed':
                 return <span className="status-badge" style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}><RefreshCw size={12} style={{ marginRight: '4px', display: 'inline' }} /> Đã hoàn tiền</span>;
             default:
@@ -141,7 +145,9 @@ const AdminTransactions = () => {
                     <option value="">Tất cả Trạng thái</option>
                     <option value="success">Thành công</option>
                     <option value="failed">Thất bại</option>
-                    <option value="pending">Đang xử lý</option>
+                    <option value="cancelled">Bị hủy</option>
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="pending_otp">Chờ OTP</option>
                     <option value="reversed">Đã hoàn tiền</option>
                 </select>
                 <button

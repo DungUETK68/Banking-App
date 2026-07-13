@@ -32,6 +32,14 @@ export class TransactionsController {
         return this.transactionsService.verifyOtp(req.user.id, id, otp, req.user.role);
     }
 
+    @Post(':id/cancel')
+    cancelTransaction(
+        @Req() req: any,
+        @Param('id') id: string
+    ) {
+        return this.transactionsService.cancelTransaction(req.user.id, id, req.user.role);
+    }
+
     @Post(':id/reverse')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
@@ -49,7 +57,8 @@ export class TransactionsController {
         @Query('minAmount') minAmount?: number,
         @Query('maxAmount') maxAmount?: number,
         @Query('startDate') startDate?: string,
-        @Query('endDate') endDate?: string
+        @Query('endDate') endDate?: string,
+        @Query('status') status?: string
     ) {
         if (!accountNumber) {
             throw new BadRequestException('Vui lòng nhập accountNumber.');
@@ -60,7 +69,7 @@ export class TransactionsController {
         const limitNum = Number(limit) || 10;
 
         return this.transactionsService.getTransactions(userId, accountNumber, pageNum, limitNum, {
-            type, minAmount, maxAmount, startDate, endDate
+            type, minAmount, maxAmount, startDate, endDate, status
         });
     }
 

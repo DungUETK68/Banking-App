@@ -174,6 +174,27 @@ const Transfer = () => {
         }
     }
 
+    const handleCancelOtp = async () => {
+        if (!pendingTransactionId) {
+            setShowOtpModal(false);
+            return;
+        }
+        
+        setLoading(true);
+        try {
+            await axiosClient.post(`/transactions/${pendingTransactionId}/cancel`);
+            setErrorMessage('Bạn đã hủy giao dịch.');
+            setTimeout(() => setErrorMessage(''), 4000);
+        } catch (error) {
+            console.error('Lỗi khi hủy giao dịch', error);
+        } finally {
+            setShowOtpModal(false);
+            setOtpCode('');
+            setPendingTransactionId('');
+            setLoading(false);
+        }
+    };
+
     const formatMoney = (val: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
     };
@@ -308,7 +329,7 @@ const Transfer = () => {
                                 style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '4px', marginBottom: '20px' }}
                             />
                             <div className="modal-actions">
-                                <button className="modal-btn cancel" onClick={() => setShowOtpModal(false)} disabled={loading}>
+                                <button className="modal-btn cancel" onClick={handleCancelOtp} disabled={loading}>
                                     Hủy bỏ
                                 </button>
                                 <button className="modal-btn confirm" onClick={confirmOtp} disabled={loading}>
