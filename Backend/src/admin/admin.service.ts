@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
 import { LedgerEntry } from '../entities/ledger-entry.entity';
 import { UserHistory } from '../entities/user-history.entity';
 import { Transaction } from '../entities/transaction.entity';
+import { AuditLog } from '../entities/audit-log.entity';
 
 @Injectable()
 export class AdminService {
@@ -62,6 +63,59 @@ export class AdminService {
             }
         };
     }
+
+    async testDeleteLedger() {
+        const firstEntry = await this.dataSource.manager.findOne(LedgerEntry, { where: {} });
+        if (!firstEntry) return 'Chưa có bút toán nào để test!';
+
+        await this.dataSource.manager.remove(firstEntry);
+        return 'Xóa thành công';
+    }
+
+    async getAuditLogs(page: number = 1, limit: number = 10) {
+        const [logs, total] = await this.dataSource.manager.findAndCount(AuditLog, {
+            order: { createdAt: 'DESC' },
+            skip: (page - 1) * limit,
+            take: limit
+        });
+
+        const userIds = [...new Set([
+            ...logs.map(log => log.actorId).filter(id => id),
+            ...logs.map(log => log.entityId).filter(id => id)
+        ])];
+
+        const users = userIds.length > 0 ? await this.dataSource.manager.find(User, {
+            where: { id: In(userIds) },
+            select: { id: true, fullName: true }
+        }) : [];
+
+        const userMap = new Map(users.map(u => [u.id, u.fullName]));
+
+        const formattedLogs = logs.map(log => {
+            const actorName = log.actorId ? userMap.get(log.actorId) || 'Unknown User' : 'Hệ thống';
+            const entityName = (log.entityName === 'User' && log.entityId) ? userMap.get(log.entityId) || 'Unknown User' : log.entityName;
+
+            return {
+                ...log,
+                actorName,
+                entityNameDisplay: entityName
+            };
+        });
+
+        return {
+            message: 'Lấy danh sách Audit Log thành công',
+            data: {
+                items: formattedLogs,
+                meta: {
+                    total,
+                    currentPage: page,
+                    totalPages: Math.ceil(total / limit),
+                    limit
+                }
+            }
+        };
+    }
+
     async getLedgerEntries(page: number, limit: number, filters: any) {
         const queryBuilder = this.dataSource.manager.createQueryBuilder(LedgerEntry, 'ledger')
             .leftJoinAndSelect('ledger.account', 'account')

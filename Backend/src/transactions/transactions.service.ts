@@ -63,7 +63,7 @@ export class TransactionsService {
             const LARGE_TX_LIMIT = 100000000;
             const isLargeTx = amount >= LARGE_TX_LIMIT && userRole === 'teller';
             const OTP_LIMIT = 10000000;
-            const requiresOtp = amount >= OTP_LIMIT;
+            const requiresOtp = amount >= OTP_LIMIT && userRole === 'customer';
 
             // luu giao dich
             const transaction = new Transaction();
@@ -76,7 +76,7 @@ export class TransactionsService {
 
             if (requiresOtp) {
                 transaction.status = TransactionStatus.PENDING_OTP;
-                const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+                const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6
                 transaction.otpCode = otp;
                 transaction.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
                 const savedTransaction = await queryRunner.manager.save(transaction);
@@ -101,13 +101,11 @@ export class TransactionsService {
                 };
             }
 
-            // tinh tien
             fromAccount.balance = currentBalance - amount;
             await queryRunner.manager.save(fromAccount);
             toAccount.balance = Number(toAccount.balance) + amount;
             await queryRunner.manager.save(toAccount);
 
-            // but toan tru tien nguoi gui
             const debitEntry = new LedgerEntry();
             debitEntry.account = fromAccount;
             debitEntry.transaction = savedTransaction;
@@ -116,7 +114,6 @@ export class TransactionsService {
             debitEntry.balanceAfter = fromAccount.balance;
             await queryRunner.manager.save(debitEntry);
 
-            // but toan cong tien nguoi nhan
             const creditEntry = new LedgerEntry();
             creditEntry.account = toAccount;
             creditEntry.transaction = savedTransaction;
@@ -257,22 +254,12 @@ export class TransactionsService {
             creditEntry.balanceAfter = toAccount.balance;
             await queryRunner.manager.save(creditEntry);
 
-            const LARGE_TX_LIMIT = 100000000;
-            const isLargeTx = amount >= LARGE_TX_LIMIT && userRole === 'teller';
-
             transaction.otpCode = null;
             transaction.otpExpiresAt = null;
-            transaction.status = isLargeTx ? TransactionStatus.PENDING : TransactionStatus.SUCCESS;
+            transaction.status = TransactionStatus.SUCCESS;
             await queryRunner.manager.save(transaction);
 
             await queryRunner.commitTransaction();
-
-            if (isLargeTx) {
-                return {
-                    message: 'Xác thực OTP thành công. Giao dịch lớn đang chờ Admin duyệt.',
-                    data: { transactionId: transaction.id }
-                };
-            }
 
             return {
                 message: 'Chuyển khoản thành công.',
@@ -383,7 +370,6 @@ export class TransactionsService {
         await queryRunner.startTransaction();
 
         try {
-            // 1. Lấy thông tin giao dịch (KHÔNG LOCK) để biết ai là người gửi/nhận
             const txInfo = await queryRunner.manager.createQueryBuilder(Transaction, 'tx')
                 .innerJoinAndSelect('tx.fromAccount', 'fromAccount')
                 .innerJoinAndSelect('tx.toAccount', 'toAccount')
@@ -394,7 +380,6 @@ export class TransactionsService {
                 throw new NotFoundException('Không tìm thấy giao dịch gốc.');
             }
 
-            // 2. CHỐNG DEADLOCK: Khóa Tài khoản theo đúng thứ tự như khi chuyển tiền
             const isFromFirst = txInfo.fromAccount.accountNumber < txInfo.toAccount.accountNumber;
             let originalSender: Account | null, originalReceiver: Account | null;
 
@@ -410,7 +395,6 @@ export class TransactionsService {
                 throw new NotFoundException('Tài khoản không tồn tại hoặc đã bị xóa.');
             }
 
-            // 3. Khóa Giao dịch (Transaction) sau khi đã cầm chắc 2 khóa của Tài khoản
             const originalTx = await queryRunner.manager.findOne(Transaction, {
                 where: { id: transactionId },
                 lock: { mode: 'pessimistic_write' }

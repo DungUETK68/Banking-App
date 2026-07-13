@@ -6,15 +6,18 @@ const AdminAuditLog = () => {
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedData, setSelectedData] = useState<{ title: string, data: any } | null>(null);
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState<any>(null);
 
-    const fetchAuditLogs = async () => {
+    const fetchAuditLogs = async (currentPage = page) => {
         setLoading(true);
         try {
-            const response: any = await axiosClient.get('/admin/audit-logs');
-            if (Array.isArray(response.data)) {
+            const response: any = await axiosClient.get(`/admin/audit-logs?page=${currentPage}&limit=10`);
+            if (response.data && response.data.items) {
+                setLogs(response.data.items);
+                setMeta(response.data.meta);
+            } else if (response.data && Array.isArray(response.data)) {
                 setLogs(response.data);
-            } else if (response.data && Array.isArray(response.data.data)) {
-                setLogs(response.data.data);
             } else if (Array.isArray(response)) {
                 setLogs(response);
             }
@@ -112,6 +115,14 @@ const AdminAuditLog = () => {
                         )}
                     </tbody>
                 </table>
+
+                {meta && meta.totalPages > 1 && (
+                    <div className="pagination">
+                        <button className="page-btn" disabled={page <= 1} onClick={() => { setPage(page - 1); fetchAuditLogs(page - 1); }}>Trang trước</button>
+                        <span className="page-info">Trang {meta.currentPage} / {meta.totalPages}</span>
+                        <button className="page-btn" disabled={page >= meta.totalPages} onClick={() => { setPage(page + 1); fetchAuditLogs(page + 1); }}>Trang sau</button>
+                    </div>
+                )}
             </div>
 
             {selectedData && (

@@ -34,6 +34,7 @@ export class TransactionsController {
 
     @Post(':id/reverse')
     @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
     reverseTransaction(@Param('id') id: string) {
         return this.transactionsService.reverseTransaction(id);
     }

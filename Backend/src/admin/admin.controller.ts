@@ -3,16 +3,14 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { User, UserRole, UserStatus } from '../entities/user.entity';
-import { DataSource, In } from 'typeorm';
-import { LedgerEntry } from '../entities/ledger-entry.entity';
-import { AuditLog } from 'src/entities/audit-log.entity';
+
 import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminController {
-    constructor(private readonly adminService: AdminService, private dataSource: DataSource) { }
+    constructor(private readonly adminService: AdminService) { }
 
     @Get('users')
     getAllUsers(
@@ -39,45 +37,18 @@ export class AdminController {
     @Get('test-delete-ledger')
     async testDeleteLedger() {
         try {
-            const firstEntry = await this.dataSource.manager.findOne(LedgerEntry, { where: {} });
-            if (!firstEntry) return 'Chưa có bút toán nào để test!';
-
-            await this.dataSource.manager.remove(firstEntry);
-            return 'Xóa thành công';
+            return await this.adminService.testDeleteLedger();
         } catch (error: any) {
             throw new BadRequestException(error.message);
         }
     }
 
     @Get('audit-logs')
-    async getAuditLogs() {
-        const logs = await this.dataSource.manager.find(AuditLog, {
-            order: { createdAt: 'DESC' },
-            take: 50
-        });
-
-        const userIds = [...new Set([
-            ...logs.map(log => log.actorId).filter(id => id),
-            ...logs.map(log => log.entityId).filter(id => id)
-        ])];
-
-        const users = userIds.length > 0 ? await this.dataSource.manager.find(User, {
-            where: { id: In(userIds) },
-            select: { id: true, fullName: true }
-        }) : [];
-
-        const userMap = new Map(users.map(u => [u.id, u.fullName]));
-
-        return logs.map(log => {
-            const actorName = log.actorId ? userMap.get(log.actorId) || 'Unknown User' : 'Hệ thống';
-            const entityName = (log.entityName === 'User' && log.entityId) ? userMap.get(log.entityId) || 'Unknown User' : log.entityName;
-
-            return {
-                ...log,
-                actorName,
-                entityNameDisplay: entityName
-            };
-        });
+    async getAuditLogs(
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '10',
+    ) {
+        return this.adminService.getAuditLogs(Number(page), Number(limit));
     }
 
     @Get('ledger-entries')
