@@ -1,5 +1,6 @@
 import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Account } from '../entities/account.entity';
 import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
@@ -600,5 +601,24 @@ export class TransactionsService {
                 limit: Number(limit)
             }
         };
+    }
+
+    @Cron(CronExpression.EVERY_MINUTE)
+    async handleExpiredOTPTransactions() {
+        try {
+            const result = await this.dataSource.manager.update(Transaction, {
+                status: TransactionStatus.PENDING_OTP,
+                otpExpiresAt: LessThan(new Date())
+            }, {
+                status: TransactionStatus.FAILED,
+                description: 'Hủy do OTP hết hạn'
+            });
+
+            if (result.affected && result.affected > 0) {
+                console.log(`[CronJob] Đã tự động hủy ${result.affected} giao dịch hết hạn OTP.`);
+            }
+        } catch (error) {
+            console.error('[CronJob] Lỗi khi tự động hủy giao dịch hết hạn OTP:', error);
+        }
     }
 }

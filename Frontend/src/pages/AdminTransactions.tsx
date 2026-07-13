@@ -50,7 +50,7 @@ const AdminTransactions = () => {
         try {
             await axiosClient.post(`/transactions/${selectedTransaction.id}/reverse`);
             setShowConfirmModal(false);
-            fetchTransactions(page); // Reload current page
+            fetchTransactions(page);
         } catch (error: any) {
             alert(error.response?.data?.message || 'Có lỗi xảy ra khi hoàn tiền');
         } finally {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -54,6 +55,7 @@ import { Session } from './entities/session.entity';
       ttl: 60000,
       limit: 10,
     }]),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService, AccountsService],
