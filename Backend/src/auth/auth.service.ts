@@ -229,8 +229,12 @@ export class AuthService {
     async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
         const { oldPassword, newPassword } = changePasswordDto;
 
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
         try {
-            const user = await this.dataSource.manager.findOne(User, { where: { id: userId } });
+            const user = await queryRunner.manager.findOne(User, { where: { id: userId } });
             if (!user) {
                 throw new UnauthorizedException('Người dùng không tồn tại.');
             }
@@ -242,16 +246,21 @@ export class AuthService {
 
             const salt = await bcrypt.genSalt();
             user.passwordHash = await bcrypt.hash(newPassword, salt);
-            await this.dataSource.manager.save(user);
+            await queryRunner.manager.save(user);
 
-            await this.dataSource.manager.delete(Session, { userId: user.id });
+            await queryRunner.manager.delete(Session, { userId: user.id });
+
+            await queryRunner.commitTransaction();
 
             return { message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.' };
         } catch (error) {
+            await queryRunner.rollbackTransaction();
             if (error instanceof UnauthorizedException) {
                 throw error;
             }
             throw new InternalServerErrorException('Lỗi hệ thống khi đổi mật khẩu.');
+        } finally {
+            await queryRunner.release();
         }
     }
 }

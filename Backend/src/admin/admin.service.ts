@@ -47,43 +47,69 @@ export class AdminService {
     }
 
     async updateUserStatus(userId: string, newStatus: UserStatus) {
-        const user = await this.dataSource.manager.findOne(User, { where: { id: userId } });
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        if (!user) {
-            throw new NotFoundException('Không tìm thấy người dùng');
-        }
+        try {
+            const user = await queryRunner.manager.findOne(User, { where: { id: userId } });
 
-        user.status = newStatus;
-        await this.dataSource.manager.save(user);
-
-        return {
-            message: `Tài khoản đã được ${newStatus === UserStatus.ACTIVE ? 'mở khóa' : 'khóa'} thành công`,
-            data: {
-                id: user.id,
-                status: user.status
+            if (!user) {
+                throw new NotFoundException('Không tìm thấy người dùng');
             }
-        };
+
+            user.status = newStatus;
+            await queryRunner.manager.save(user);
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: `Tài khoản đã được ${newStatus === UserStatus.ACTIVE ? 'mở khóa' : 'khóa'} thành công`,
+                data: {
+                    id: user.id,
+                    status: user.status
+                }
+            };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     async deleteUser(userId: string) {
-        const user = await this.dataSource.manager.findOne(User, {
-            where: { id: userId },
-            relations: { accounts: true }
-        });
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        if (!user) {
-            throw new NotFoundException('Người dùng không tồn tại');
+        try {
+            const user = await queryRunner.manager.findOne(User, {
+                where: { id: userId },
+                relations: { accounts: true }
+            });
+
+            if (!user) {
+                throw new NotFoundException('Người dùng không tồn tại');
+            }
+
+            if (user.accounts && user.accounts.length > 0) {
+                await queryRunner.manager.softRemove(user.accounts);
+            }
+
+            await queryRunner.manager.softRemove(user);
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: 'Xóa tài khoản thành công'
+            };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
         }
-
-        if (user.accounts && user.accounts.length > 0) {
-            await this.dataSource.manager.softRemove(user.accounts);
-        }
-
-        await this.dataSource.manager.softRemove(user);
-
-        return {
-            message: 'Xóa tài khoản thành công'
-        };
     }
 
     async testDeleteLedger() {
