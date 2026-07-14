@@ -1,10 +1,10 @@
 import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { DataSource, In, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Account } from '../entities/account.entity';
-import { Transaction, TransactionType, TransactionStatus } from '../entities/transaction.entity';
+import { Account } from '../accounts/entities/account.entity';
+import { Transaction, TransactionType, TransactionStatus } from './entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
-import { LedgerEntry, LedgerEntryType } from '../entities/ledger-entry.entity';
+import { LedgerEntry, LedgerEntryType } from './entities/ledger-entry.entity';
 
 @Injectable()
 export class TransactionsService {

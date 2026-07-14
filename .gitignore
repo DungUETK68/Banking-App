@@ -34,3 +34,5 @@ docker-compose.override.yml
 REQUIREMENT.md
 REQUIREMENT_ADVANCE.md
 SEQUENCE_DIAGRAM.md
+QUERY.sql
+TRIGGER.sql

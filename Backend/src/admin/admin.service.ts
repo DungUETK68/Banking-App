@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
-import { User, UserStatus } from '../entities/user.entity';
-import { LedgerEntry } from '../entities/ledger-entry.entity';
-import { UserHistory } from '../entities/user-history.entity';
-import { Transaction } from '../entities/transaction.entity';
-import { AuditLog } from '../entities/audit-log.entity';
-import { Account } from '../entities/account.entity';
+import { User, UserStatus } from '../users/entities/user.entity';
+import { LedgerEntry } from '../transactions/entities/ledger-entry.entity';
+import { UserHistory } from '../users/entities/user-history.entity';
+import { Transaction } from '../transactions/entities/transaction.entity';
+import { AuditLog } from './entities/audit-log.entity';
+import { Account } from '../accounts/entities/account.entity';
 
 @Injectable()
 export class AdminService {

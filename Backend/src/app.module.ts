@@ -5,22 +5,22 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from './entities/user.entity';
-import { Account } from './entities/account.entity';
-import { Transaction } from './entities/transaction.entity';
+import { User } from './users/entities/user.entity';
+import { Account } from './accounts/entities/account.entity';
+import { Transaction } from './transactions/entities/transaction.entity';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { AccountsService } from './accounts/accounts.service';
 import { AdminModule } from './admin/admin.module';
 import { TransactionsModule } from './transactions/transactions.module';
-import { LedgerEntry } from './entities/ledger-entry.entity';
-import { LedgerEntrySubscriber } from './subscribers/ledger-entry.subscriber';
-import { AuditLog } from './entities/audit-log.entity';
-import { AuditLogSubscriber } from './subscribers/audit-log.subscriber';
-import { UserHistory } from './entities/user-history.entity';
-import { UserHistorySubscriber } from './subscribers/user-history.subscriber';
-import { Session } from './entities/session.entity';
+import { LedgerEntry } from './transactions/entities/ledger-entry.entity';
+import { LedgerEntrySubscriber } from './transactions/subscribers/ledger-entry.subscriber';
+import { AuditLog } from './admin/entities/audit-log.entity';
+import { AuditLogSubscriber } from './users/subscribers/audit-log.subscriber';
+import { UserHistory } from './users/entities/user-history.entity';
+import { UserHistorySubscriber } from './users/subscribers/user-history.subscriber';
+import { Session } from './auth/entities/session.entity';
 
 @Module({
   imports: [

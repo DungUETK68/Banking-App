@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Account } from 'src/entities/account.entity';
+import { User } from '../users/entities/user.entity';
+import { Account } from 'src/accounts/entities/account.entity';
 
 @Injectable()
 export class AccountsService {

@@ -124,7 +124,11 @@ const TellerTransfer = () => {
             setReceiverName('');
 
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.message || 'Có lỗi xảy ra trong quá trình xử lý giao dịch.');
+            if (error.response?.status === 429) {
+                setErrorMessage('Giao dịch quá nhanh, vui lòng thử lại sau.');
+            } else {
+                setErrorMessage(error.response?.data?.message || 'Có lỗi xảy ra trong quá trình xử lý giao dịch.');
+            }
             setTimeout(() => setErrorMessage(''), 4000);
         } finally {
             setLoading(false);

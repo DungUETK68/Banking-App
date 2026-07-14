@@ -1,7 +1,7 @@
 import { EventSubscriber, EntitySubscriberInterface, UpdateEvent, SoftRemoveEvent } from 'typeorm';
 import { User } from '../entities/user.entity';
-import { AuditLog } from '../entities/audit-log.entity';
-import { RequestContext } from '../utils/request-context';
+import { AuditLog } from '../../admin/entities/audit-log.entity';
+import { RequestContext } from '../../utils/request-context';
 
 @EventSubscriber()
 export class AuditLogSubscriber implements EntitySubscriberInterface<User> {

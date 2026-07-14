@@ -126,7 +126,11 @@ const Transfer = () => {
                 setAccount(accountResponse.data.account);
             }
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.message || 'Giao dịch thất bại, vui lòng thử lại.');
+            if (error.response?.status === 429) {
+                setErrorMessage('Giao dịch quá nhanh, vui lòng thử lại sau.');
+            } else {
+                setErrorMessage(error.response?.data?.message || 'Giao dịch thất bại, vui lòng thử lại.');
+            }
             setTimeout(() => setErrorMessage(''), 4000);
         } finally {
             setLoading(false);

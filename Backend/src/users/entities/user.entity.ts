@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
-import { Account } from './account.entity';
-import { Session } from './session.entity';
+import { Account } from '../../accounts/entities/account.entity';
+import { Session } from '../../auth/entities/session.entity';
 
 export enum UserRole {
     CUSTOMER = 'customer',

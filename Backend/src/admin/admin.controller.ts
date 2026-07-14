@@ -2,7 +2,7 @@ import { Controller, Get, Patch, Delete, Param, Body, UseGuards, BadRequestExcep
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { User, UserRole, UserStatus } from '../entities/user.entity';
+import { User, UserRole, UserStatus } from '../users/entities/user.entity';
 
 import { Roles } from 'src/auth/decorators/roles.decorator';
 

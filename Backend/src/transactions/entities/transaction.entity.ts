@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from "typeorm";
-import { Account } from './account.entity';
+import { Account } from '../../accounts/entities/account.entity';
 
 export enum TransactionType {
     TRANSFER = 'transfer',

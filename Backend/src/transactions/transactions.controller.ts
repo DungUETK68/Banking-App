@@ -5,7 +5,7 @@ import { TransferDto } from './dto/transfer.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('transactions')
 @UseGuards(JwtAuthGuard)

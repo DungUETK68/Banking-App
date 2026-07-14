@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { Account } from './account.entity';
+import { Account } from '../../accounts/entities/account.entity';
 import { Transaction } from './transaction.entity';
 
 export enum LedgerEntryType {
