@@ -15,6 +15,8 @@ const AdminTransactions = () => {
     const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
     const [isRefunding, setIsRefunding] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
 
     const fetchTransactions = async (currentPage: number) => {
         setLoading(true);
@@ -71,6 +73,22 @@ const AdminTransactions = () => {
             alert(error.response?.data?.message || 'Có lỗi xảy ra khi duyệt giao dịch');
         } finally {
             setIsApproving(false);
+            setSelectedTransaction(null);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!selectedTransaction) return;
+
+        setIsRejecting(true);
+        try {
+            await axiosClient.post(`/transactions/${selectedTransaction.id}/reject`);
+            setShowRejectModal(false);
+            fetchTransactions(page);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi từ chối giao dịch');
+        } finally {
+            setIsRejecting(false);
             setSelectedTransaction(null);
         }
     };
@@ -216,18 +234,32 @@ const AdminTransactions = () => {
                                         </button>
                                     )}
                                     {tx.status === 'pending' && (
-                                        <button
-                                            onClick={() => {
-                                                setSelectedTransaction(tx);
-                                                setShowApproveModal(true);
-                                            }}
-                                            disabled={isApproving}
-                                            className="action-btn"
-                                            style={{ backgroundColor: '#eff6ff', color: '#3b82f6', border: '1px solid #bfdbfe', marginLeft: '5px' }}
-                                        >
-                                            <CheckCircle2 size={14} style={{ marginRight: '4px', display: 'inline' }} />
-                                            Duyệt
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedTransaction(tx);
+                                                    setShowApproveModal(true);
+                                                }}
+                                                disabled={isApproving || isRejecting}
+                                                className="action-btn"
+                                                style={{ backgroundColor: '#eff6ff', color: '#3b82f6', border: '1px solid #bfdbfe' }}
+                                            >
+                                                <CheckCircle2 size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                                                Duyệt
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedTransaction(tx);
+                                                    setShowRejectModal(true);
+                                                }}
+                                                disabled={isApproving || isRejecting}
+                                                className="action-btn"
+                                                style={{ backgroundColor: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', marginLeft: '5px' }}
+                                            >
+                                                <XCircle size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                                                Từ chối
+                                            </button>
+                                        </>
                                     )}
                                 </td>
                             </tr>
@@ -317,6 +349,42 @@ const AdminTransactions = () => {
                                 style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#3b82f6', color: '#fff', cursor: 'pointer' }}
                             >
                                 {isApproving ? 'Đang xử lý...' : 'Xác nhận Duyệt'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Reject Modal */}
+            {showRejectModal && selectedTransaction && (
+                <div className="modal-overlay">
+                    <div className="modal-content confirm-modal">
+                        <h2>Xác nhận từ chối giao dịch</h2>
+                        <div style={{ margin: '20px 0', lineHeight: '1.5', color: '#334155' }}>
+                            <p>Bạn có chắc chắn muốn từ chối giao dịch này không?</p>
+                            <div style={{ padding: '15px', backgroundColor: '#fef2f2', borderRadius: '8px', marginTop: '15px', border: '1px solid #fca5a5' }}>
+                                <div><strong>Mã GD:</strong> {selectedTransaction.id}</div>
+                                <div><strong>Số tiền:</strong> {formatCurrency(Number(selectedTransaction.amount))}</div>
+                                <div><strong>Người gửi:</strong> {selectedTransaction.fromUserName} ({selectedTransaction.fromAccount})</div>
+                                <div><strong>Người nhận:</strong> {selectedTransaction.toUserName} ({selectedTransaction.toAccount})</div>
+                            </div>
+                        </div>
+                        <div className="modal-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                className="btn-cancel"
+                                onClick={() => { setShowRejectModal(false); setSelectedTransaction(null); }}
+                                disabled={isRejecting}
+                                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                className="btn-confirm"
+                                onClick={handleReject}
+                                disabled={isRejecting}
+                                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#ef4444', color: '#fff', cursor: 'pointer' }}
+                            >
+                                {isRejecting ? 'Đang xử lý...' : 'Xác nhận Từ chối'}
                             </button>
                         </div>
                     </div>

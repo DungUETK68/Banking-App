@@ -411,6 +411,39 @@ export class TransactionsService {
         }
     }
 
+    async rejectLargeTransaction(transactionId: string) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const lockedTx = await queryRunner.manager.findOne(Transaction, {
+                where: { id: transactionId, status: TransactionStatus.PENDING },
+                lock: { mode: 'pessimistic_write' }
+            });
+
+            if (!lockedTx) {
+                throw new NotFoundException('Không tìm thấy giao dịch PENDING.');
+            }
+
+            lockedTx.status = TransactionStatus.FAILED;
+            lockedTx.description = (lockedTx.description ? lockedTx.description + ' - ' : '') + 'Bị từ chối bởi Admin';
+            await queryRunner.manager.save(lockedTx);
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: 'Từ chối giao dịch thành công!',
+                data: { transactionId: lockedTx.id }
+            };
+
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
 
     async reverseTransaction(transactionId: string) {
         const queryRunner = this.dataSource.createQueryRunner();

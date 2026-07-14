@@ -79,4 +79,11 @@ export class TransactionsController {
     approveTransaction(@Param('id') id: string) {
         return this.transactionsService.approveLargeTransaction(id);
     }
+
+    @Post(':id/reject')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    rejectTransaction(@Param('id') id: string) {
+        return this.transactionsService.rejectLargeTransaction(id);
+    }
 }
