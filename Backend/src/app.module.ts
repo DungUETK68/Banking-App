@@ -21,6 +21,7 @@ import { AuditLogSubscriber } from './users/subscribers/audit-log.subscriber';
 import { UserHistory } from './users/entities/user-history.entity';
 import { UserHistorySubscriber } from './users/subscribers/user-history.subscriber';
 import { Session } from './auth/entities/session.entity';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { Session } from './auth/entities/session.entity';
       limit: 10,
     }]),
     ScheduleModule.forRoot(),
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService, AccountsService],
