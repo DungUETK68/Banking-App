@@ -5,6 +5,7 @@ import { Transaction } from './transaction.entity';
 export enum LedgerEntryType {
     DEBIT = 'DEBIT', // bi tru tien
     CREDIT = 'CREDIT', // duoc cong tien
+    INITIAL_BALANCE = 'INITIAL_BALANCE'
 }
 
 @Entity('ledger-entries')

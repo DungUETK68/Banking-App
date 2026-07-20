@@ -5,6 +5,7 @@ import { Account } from '../accounts/entities/account.entity';
 import { Transaction, TransactionType, TransactionStatus } from './entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
 import { LedgerEntry, LedgerEntryType } from './entities/ledger-entry.entity';
+import { ReconciliationReport, ReconciliationStatus } from '../admin/entities/reconciliation-report.entity'
 
 @Injectable()
 export class TransactionsService {
@@ -696,6 +697,43 @@ export class TransactionsService {
             console.error('[CronJob] Lỗi khi tự động hủy giao dịch hết hạn OTP:', error);
         } finally {
             this.isExpiredOTPCronRunning = false;
+        }
+    }
+
+    @Cron('59 23 * * *')
+    async dailyReconciliationJob() {
+        console.log('[Reconciliation] Bắt đầu đối soát Sổ cái cuối ngày...');
+        const accounts = await this.dataSource.manager.find(Account);
+        let discrepancyCount = 0;
+        for (const account of accounts) {
+            const result = await this.dataSource.manager
+                .createQueryBuilder(LedgerEntry, 'ledger')
+                .select('SUM(ledger.amount)', 'total')
+                .where('ledger.account = :accountId', { accountId: account.id })
+                .getRawOne();
+
+            const expectedBalance = Number(result.total || 0);
+            const actualBalance = Number(account.balance);
+
+            if (expectedBalance !== actualBalance) {
+                const discrepancy = actualBalance - expectedBalance;
+                discrepancyCount++;
+                console.warn(`[Reconciliation] CẢNH BÁO LỆCH TIỀN: Tài khoản ${account.accountNumber} lệch ${discrepancy} VNĐ`);
+                const report = this.dataSource.manager.create(ReconciliationReport, {
+                    accountId: account.id,
+                    expectedBalance: expectedBalance,
+                    actualBalance: actualBalance,
+                    discrepancy: discrepancy,
+                    status: ReconciliationStatus.PENDING,
+                    description: 'Hệ thống tự động phát hiện lệch sổ cái cuối ngày.'
+                });
+                await this.dataSource.manager.save(report);
+            }
+        }
+        if (discrepancyCount === 0) {
+            console.log('[Reconciliation] Hoàn tất. Toàn bộ tài khoản khớp Sổ cái.');
+        } else {
+            console.log(`[Reconciliation] Hoàn tất. Phát hiện ${discrepancyCount} tài khoản bị lệch Sổ cái!`);
         }
     }
 }
