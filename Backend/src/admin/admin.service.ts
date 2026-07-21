@@ -13,7 +13,7 @@ export class AdminService {
 
     async getAllUsers(page: number, limit: number, filters: any) {
         const queryBuilder = this.dataSource.manager.createQueryBuilder(User, 'user')
-            .select(['user.id', 'user.fullName', 'user.email', 'user.role', 'user.status', 'user.createdAt']);
+            .select(['user.id', 'user.fullName', 'user.email', 'user.role', 'user.status', 'user.createdAt', 'user.isFlagged', 'user.flagReason']);
 
         if (filters.name) {
             queryBuilder.andWhere('user.fullName ILIKE :name', { name: `%${filters.name}%` });
@@ -68,6 +68,39 @@ export class AdminService {
                 data: {
                     id: user.id,
                     status: user.status
+                }
+            };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    async unflagUser(userId: string) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const user = await queryRunner.manager.findOne(User, { where: { id: userId } });
+
+            if (!user) {
+                throw new NotFoundException('Không tìm thấy người dùng');
+            }
+
+            user.isFlagged = false;
+            user.flagReason = null;
+            await queryRunner.manager.save(user);
+
+            await queryRunner.commitTransaction();
+
+            return {
+                message: 'Đã gỡ cờ cảnh báo thành công',
+                data: {
+                    id: user.id,
+                    isFlagged: user.isFlagged
                 }
             };
         } catch (error) {

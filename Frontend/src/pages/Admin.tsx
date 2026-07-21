@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axiosClient from '../api/axiosClient';
-import { Lock, Unlock, Clock, Info, Trash2 } from 'lucide-react';
+import { Lock, Unlock, Clock, Info, Trash2, Flag } from 'lucide-react';
 import '../styles/admin.css';
 
 const Admin = () => {
@@ -8,6 +8,7 @@ const Admin = () => {
     const [loading, setLoading] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showUnflagModal, setShowUnflagModal] = useState(false);
 
     // History Modal States
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -95,6 +96,22 @@ const Admin = () => {
         }
     };
 
+    const handleOpenUnflagModal = (user: any) => {
+        setSelectedUser(user);
+        setShowUnflagModal(true);
+    };
+
+    const confirmUnflag = async () => {
+        if (!selectedUser) return;
+        try {
+            await axiosClient.patch(`/admin/users/${selectedUser.id}/unflag`);
+            setShowUnflagModal(false);
+            fetchUsers(page);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Có lỗi xảy ra khi gỡ cờ!');
+        }
+    };
+
     if (loading) {
         return <div style={{ textAlign: 'center', marginTop: '100px' }}>Đang tải dữ liệu...</div>;
     }
@@ -138,6 +155,7 @@ const Admin = () => {
                             <th>EMAIL</th>
                             <th>VAI TRÒ</th>
                             <th>TRẠNG THÁI</th>
+                            <th>CẢNH BÁO</th>
                             <th>THAO TÁC</th>
                         </tr>
                     </thead>
@@ -158,12 +176,30 @@ const Admin = () => {
                                     </span>
                                 </td>
                                 <td>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    {user.isFlagged ? (
+                                        <span title={user.flagReason || 'Có hành vi đáng ngờ'} style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'help', fontWeight: 500 }}>
+                                            <Flag size={16} /> Bất thường
+                                        </span>
+                                    ) : (
+                                        <span style={{ color: '#94a3b8' }}>-</span>
+                                    )}
+                                </td>
+                                <td>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', minWidth: '280px' }}>
+                                        {user.isFlagged && (
+                                            <button
+                                                onClick={() => handleOpenUnflagModal(user)}
+                                                className="action-btn"
+                                                style={{ backgroundColor: '#fffbeb', color: '#d97706', border: '1px solid #fcd34d', width: '100%', justifyContent: 'center' }}
+                                            >
+                                                <Flag size={16} /> Gỡ cờ
+                                            </button>
+                                        )}
                                         {user.role !== 'admin' && (
                                             <button
                                                 onClick={() => handleOpenModal(user)}
                                                 className={`action-btn ${user.status === 'active' ? 'btn-lock' : 'btn-unlock'}`}
-                                                style={{ flex: 1 }}
+                                                style={{ width: '100%', justifyContent: 'center' }}
                                             >
                                                 {user.status === 'active' ? (
                                                     <><Lock size={16} /> Khóa tài khoản</>
@@ -175,7 +211,7 @@ const Admin = () => {
                                         <button
                                             onClick={() => handleOpenHistoryModal(user)}
                                             className="action-btn btn-unlock"
-                                            style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', flex: 1 }}
+                                            style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', width: '100%', justifyContent: 'center' }}
                                         >
                                             <Clock size={16} /> Lịch sử
                                         </button>
@@ -183,7 +219,7 @@ const Admin = () => {
                                             <button
                                                 onClick={() => handleOpenDeleteModal(user)}
                                                 className="action-btn"
-                                                style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', flex: 1 }}
+                                                style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', width: '100%', justifyContent: 'center' }}
                                             >
                                                 <Trash2 size={16} /> Xóa
                                             </button>
@@ -254,6 +290,29 @@ const Admin = () => {
                                 style={{ backgroundColor: '#ef4444' }}
                             >
                                 Xác nhận xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showUnflagModal && selectedUser && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h3 style={{ marginTop: 0, color: '#d97706' }}>Xác nhận gỡ cờ cảnh báo</h3>
+                        <p>
+                            Bạn có chắc chắn muốn xóa đánh dấu bất thường cho tài khoản <strong>{selectedUser.fullName}</strong> không?
+                        </p>
+                        <div className="modal-actions">
+                            <button className="modal-btn cancel" onClick={() => setShowUnflagModal(false)}>
+                                Hủy bỏ
+                            </button>
+                            <button
+                                className="modal-btn confirm-btn"
+                                onClick={confirmUnflag}
+                                style={{ backgroundColor: '#f59e0b', color: '#fff' }}
+                            >
+                                Xác nhận gỡ cờ
                             </button>
                         </div>
                     </div>

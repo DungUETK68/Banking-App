@@ -34,6 +34,11 @@ export class AdminController {
         return this.adminService.updateUserStatus(id, status);
     }
 
+    @Patch('users/:id/unflag')
+    unflagUser(@Param('id') id: string) {
+        return this.adminService.unflagUser(id);
+    }
+
     @Delete('users/:id')
     deleteUser(@Param('id') id: string) {
         return this.adminService.deleteUser(id);
