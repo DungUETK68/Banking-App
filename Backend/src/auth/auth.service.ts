@@ -11,6 +11,7 @@ import { Session } from './entities/session.entity';
 import { ConfigService } from '@nestjs/config';
 import { RefreshTokenDto } from './dto/refresh.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { GeoUtil } from '../common/utils/geo.util';
 
 @Injectable()
 export class AuthService {
@@ -127,6 +128,30 @@ export class AuthService {
     }
 
     private async generateTokens(user: User, ipAddress?: string, userAgent?: string, existingSessionId?: string) {
+        if (!existingSessionId && ipAddress) {
+            const lastSession = await this.dataSource.manager.findOne(Session, {
+                where: { userId: user.id },
+                order: { createdAt: 'DESC' }
+            });
+
+            if (lastSession && lastSession.ipAddress) {
+                const distance = GeoUtil.getDistanceBetweenIPs(lastSession.ipAddress, ipAddress);
+                const timeDiffHours = Math.max((Date.now() - lastSession.createdAt.getTime()) / (1000 * 60 * 60), 0.0001); // // Đảm bảo timeDiffHours > 0
+
+                if (distance !== null) {
+                    const speed = distance / timeDiffHours;
+
+                    if (speed > 1000) {
+                        user.isFlagged = true;
+                        user.flagReason = `Nghi ngờ: Tốc độ di chuyển bất thường ${Math.round(speed)} km/h (cách ${Math.round(distance)}km trong ${Math.round(timeDiffHours * 100) / 100} giờ). IP cũ: ${lastSession.ipAddress}, IP mới: ${ipAddress}`;
+                        await this.dataSource.manager.save(User, user);
+
+                        console.warn(`[FRAUD DETECTION] ${user.flagReason}`);
+                    }
+                }
+            }
+        }
+
         // Create or reuse session
         let session = new Session();
         if (existingSessionId) {

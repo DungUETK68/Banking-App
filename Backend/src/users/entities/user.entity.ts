@@ -42,6 +42,12 @@ export class User {
     @Column({ name: 'lock_until', nullable: true, type: 'timestamp' })
     lockUntil: Date | null;
 
+    @Column({ name: 'is_flaged', default: false })
+    isFlagged: boolean;
+
+    @Column({ name: 'flag_reason', nullable: true, type: 'text' })
+    flagReason: string | null;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 

@@ -18,10 +18,12 @@ export class AuthController {
     @Post('login')
     login(
         @Body() loginDto: LoginDto,
+        @Headers('x-forwarded-for') forwardedIp: string,
         @Ip() ip: string,
         @Headers('user-agent') userAgent: string
     ) {
-        return this.authService.login(loginDto, ip, userAgent);
+        const clientIp = forwardedIp || ip;
+        return this.authService.login(loginDto, clientIp, userAgent);
     }
 
     @Post('refresh')
