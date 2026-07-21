@@ -1,6 +1,7 @@
 import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { DataSource, In, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { User, UserStatus } from '../users/entities/user.entity';
 import { Account } from '../accounts/entities/account.entity';
 import { Transaction, TransactionType, TransactionStatus } from './entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
@@ -55,6 +56,16 @@ export class TransactionsService {
                     lock: { mode: 'pessimistic_write' }
                 });
                 if (!fromAccount) throw new NotFoundException('Không tìm thấy tài khoản nguồn.');
+            }
+
+            const fromUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: fromAccount.id } } });
+            const toUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: toAccount.id } } });
+
+            if (fromUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người gửi đang bị khóa, không thể thực hiện giao dịch.');
+            }
+            if (toUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người nhận đang bị khóa, không thể thực hiện giao dịch.');
             }
 
             const currentBalance = Number(fromAccount.balance);
@@ -168,8 +179,8 @@ export class TransactionsService {
             if (error instanceof BadRequestException || error instanceof NotFoundException) {
                 throw error;
             }
-
-            throw new InternalServerErrorException('Giao dịch thất bại do lỗi hệ thống.');
+            console.error('TRANSFER ERROR:', error);
+            throw new InternalServerErrorException('Đã xảy ra lỗi hệ thống khi chuyển khoản.');
         } finally {
             await queryRunner.release();
         }
@@ -252,6 +263,16 @@ export class TransactionsService {
 
             if (!fromAccount || !toAccount) {
                 throw new NotFoundException('Tài khoản không tồn tại.');
+            }
+
+            const fromUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: fromAccount.id } } });
+            const toUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: toAccount.id } } });
+
+            if (fromUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người gửi đang bị khóa, không thể thực hiện giao dịch.');
+            }
+            if (toUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người nhận đang bị khóa, không thể thực hiện giao dịch.');
             }
 
             const currentBalance = Number(fromAccount.balance);
@@ -385,15 +406,30 @@ export class TransactionsService {
                 throw new NotFoundException('Không tìm thấy chi tiết giao dịch.');
             }
 
-            const { fromAccount, toAccount, amount } = transaction;
+            let fromAccount: Account | null = transaction.fromAccount;
+            let toAccount: Account | null = transaction.toAccount;
+            const amount = transaction.amount;
 
             const isFromFirst = fromAccount.accountNumber < toAccount.accountNumber;
             if (isFromFirst) {
-                await queryRunner.manager.findOne(Account, { where: { id: fromAccount.id }, lock: { mode: 'pessimistic_write' } });
-                await queryRunner.manager.findOne(Account, { where: { id: toAccount.id }, lock: { mode: 'pessimistic_write' } });
+                fromAccount = await queryRunner.manager.findOne(Account, { where: { id: fromAccount.id }, lock: { mode: 'pessimistic_write' } });
+                toAccount = await queryRunner.manager.findOne(Account, { where: { id: toAccount.id }, lock: { mode: 'pessimistic_write' } });
             } else {
-                await queryRunner.manager.findOne(Account, { where: { id: toAccount.id }, lock: { mode: 'pessimistic_write' } });
-                await queryRunner.manager.findOne(Account, { where: { id: fromAccount.id }, lock: { mode: 'pessimistic_write' } });
+                toAccount = await queryRunner.manager.findOne(Account, { where: { id: toAccount.id }, lock: { mode: 'pessimistic_write' } });
+                fromAccount = await queryRunner.manager.findOne(Account, { where: { id: fromAccount.id }, lock: { mode: 'pessimistic_write' } });
+            }
+            if (!fromAccount || !toAccount) {
+                throw new NotFoundException('Tài khoản đã bị xóa hoặc không tồn tại.');
+            }
+
+            const fromUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: fromAccount.id } } });
+            const toUser = await queryRunner.manager.findOne(User, { where: { accounts: { id: toAccount.id } } });
+
+            if (fromUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người gửi đang bị khóa, không thể thực hiện giao dịch.');
+            }
+            if (toUser?.status === UserStatus.LOCKED) {
+                throw new BadRequestException('Tài khoản người nhận đang bị khóa, không thể thực hiện giao dịch.');
             }
 
             const currentBalance = Number(fromAccount.balance);
