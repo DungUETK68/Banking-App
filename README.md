@@ -1,6 +1,24 @@
-# 🏦 Simple Banking App
+# 🏦 Banking App (TD Bank)
 
-Một ứng dụng ngân hàng trực tuyến được xây dựng theo kiến trúc Microservices cơ bản với mô hình Client-Server. Ứng dụng cung cấp các tính năng cốt lõi của một hệ thống ngân hàng như: Đăng nhập/Đăng ký, Quản lý tài khoản, Chuyển tiền an toàn, và Xem lịch sử giao dịch.
+Một ứng dụng ngân hàng trực tuyến được xây dựng theo kiến trúc Microservices với mô hình Client-Server. Phiên bản này đã được nâng cấp mạnh mẽ với các **nghiệp vụ ngân hàng nâng cao**, giải quyết các bài toán thực tế thường gặp trong các hệ thống tài chính lớn.
+
+## 🌟 Các tính năng nổi bật
+
+Bên cạnh các tính năng cơ bản (Đăng nhập, Quản lý tài khoản, Chuyển tiền, Lịch sử), hệ thống đã tích hợp:
+
+* **Sổ cái kép (Double-entry Ledger) & Audit Trail:** 
+  * Mọi biến động tài chính đều được ghi sổ kép và không thể sửa/xóa.
+  * Ghi log chi tiết mọi thao tác nhạy cảm của người dùng.
+  * Cơ chế Soft-delete bảo vệ dữ liệu lịch sử.
+* **Bảo mật & Phân quyền:**
+  * Hỗ trợ 3 vai trò: `CUSTOMER`, `TELLER` (Giao dịch viên), `ADMIN` (Quản trị viên).
+  * Tích hợp **Xác thực 2 lớp (OTP)** cho các giao dịch quan trọng.
+  * Chống tấn công Brute-force & Spam với Rate Limiting (Throttler).
+* **Validation & Rule Engine:**
+  * Áp dụng Hạn mức giao dịch ngày/lần (ví dụ: tối đa 200 triệu VNĐ/ngày).
+* **Đối soát & Giám sát (Reconciliation & Monitor):**
+  * Tự động chạy **Job đối soát Sổ cái** vào cuối ngày.
+  * Cơ chế **Fraud Detection**: Tự động phát hiện vị trí địa lý bất thường qua IP và đánh cờ (Flag) tài khoản để Admin review.
 
 ## 🚀 Công nghệ sử dụng
 
@@ -11,7 +29,7 @@ Một ứng dụng ngân hàng trực tuyến được xây dựng theo kiến t
 
 ## 🛠 Yêu cầu hệ thống
 
-Để chạy dự án, máy tính của bạn cần cài đặt sẵn phần mềm duy nhất:
+Để chạy dự án, máy tính của bạn cần cài đặt sẵn:
 - **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (Bắt buộc)
 - Git (Để tải code về máy)
 
